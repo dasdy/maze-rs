@@ -5,6 +5,7 @@ extern crate imageproc;
 extern crate gtk;
 extern crate gio;
 extern crate gdk_pixbuf;
+extern crate palette;
 
 use gtk::prelude::*;
 use gio::prelude::*;
@@ -23,6 +24,7 @@ use crate::solve::DijkstraStep;
 use std::f64::consts::PI;
 use std::thread::sleep;
 use std::time;
+use palette::{LinSrgb, Lch, Srgb, Hue, Hsv, Gradient};
 
 fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
@@ -62,7 +64,6 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraS
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
     cr.scale(scalex, scaley);
     cr.set_line_width(1.0);
-    cr.set_source_rgb(0.8, 0., 0.);
 
     let pixcoord = |ix: usize| -> f64 {
         (ix as f64 + 0.5) * cellsize
@@ -84,6 +85,7 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraS
     let line = |i1: i32, i2: i32| {
         let (x1, y1) = coords(i1);
         let (x2, y2) = coords(i2);
+
         cr.move_to(x1, y1);
         cr.line_to(x2, y2);
         cr.stroke();
@@ -104,8 +106,16 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraS
     circle(x2,y2);
     cr.stroke();
 
+    cr.set_line_width(3.0);
     for (i, c) in step_state.cell_weights.iter().enumerate() {
         if c.parent >= 0 {
+            let base_color: Lch = Srgb::new(0.8, 0.2, 0.1).into();
+            let new_color =
+                LinSrgb::from(base_color.shift_hue((c.path_length as f32) * 10.));
+
+
+            cr.set_source_rgb(new_color.red as f64, new_color.green as f64, new_color.blue as f64);
+
             line(i as i32, c.parent);
         }
     }
@@ -113,8 +123,8 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraS
 
     if step_state.cell_weights[end].parent > 0 {
         let mut cur_cell = end as i32;
-        cr.set_source_rgb(0., 0., 0.9);
-        cr.set_line_width(2.0);
+        cr.set_source_rgb(1., 1., 0.);
+        cr.set_line_width(4.0);
         while cur_cell != (start as i32) {
             line(cur_cell, step_state.cell_weights[cur_cell as usize].parent);
             cur_cell = step_state.cell_weights[cur_cell as usize].parent;
