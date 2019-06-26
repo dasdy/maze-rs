@@ -1,0 +1,23 @@
+[package]
+name = "rust-mazes"
+version = "0.1.0"
+authors = ["Oleksandr Podze <dasdeg@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+
+
+image = "0.21.2"
+num-complex = "0.2.3"
+rand = "0.6"
+imageproc = "0.18.0"
+gdk-pixbuf = "0.6.0"
+cairo-rs = "0.6.0"
+gio = "0.6.0"
+
+[dependencies.gtk]
+version = "0.6.0"
+features = ["v3_16"]
+
+
+
