@@ -1,5 +1,6 @@
 use rand::prelude::*;
 use crate::grid::{Grid};
+use std::collections::HashSet;
 
 #[allow(dead_code)]
 pub fn binary_tree(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
@@ -21,6 +22,7 @@ pub fn binary_tree(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
     }
 }
 
+#[allow(dead_code)]
 pub fn sidewinder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
     for i in 0..g.height {
         let mut current_run = Vec::new();
@@ -46,4 +48,31 @@ pub fn sidewinder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
             }
         }
     }
+}
+
+pub fn aldous_broder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
+    let mut visited = HashSet::new();
+    let target_size = g.cells.len();
+    let mut current_cell = r.gen_range(0, g.cells.len());
+    visited.insert(current_cell);
+
+    while visited.len() < target_size {
+        let row = g.cells[current_cell].row;
+        let col = g.cells[current_cell].col;
+        let neighbors = vec![g.north_ix(row, col), g.east_ix(row,col),
+        g.west_ix(row, col), g.south_ix(row, col)];
+        let results: Vec<usize>  = neighbors.iter()
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect();
+
+        let random_neighbor = results[r.gen_range(0, results.len())];
+        if !visited.contains(&random_neighbor) {
+            g.link(random_neighbor, current_cell);
+        }
+        visited.insert(random_neighbor);
+        current_cell = random_neighbor;
+
+    }
+
 }

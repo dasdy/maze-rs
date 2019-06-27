@@ -59,7 +59,8 @@ fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
     }
 }
 
-fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraStep, cellsize: f64) {
+fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraStep, cellsize: f64,
+                 start: usize) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
     cr.scale(scalex, scaley);
@@ -90,8 +91,6 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraS
         cr.line_to(x2, y2);
         cr.stroke();
     };
-
-    let start = 0;
 
     let end = g.cells.len() - 1;
     let cur_cell = &g.cells[start];
@@ -141,7 +140,10 @@ fn build_ui(app: &Application) {
     vbox.add(&img);
     let mut g = Grid::new(25, 25);
     let mut rng = rand::thread_rng();
-    sidewinder(&mut g, &mut rng);
+
+//    sidewinder(&mut g, &mut rng);
+//    binary_tree(&mut g, &mut rng);
+    aldous_broder(&mut g, &mut rng);
 
     img.set_vexpand(true);
     img.set_hexpand(true);
@@ -152,15 +154,16 @@ fn build_ui(app: &Application) {
         gtk::Inhibit(false)
     });
 
-    let start = 0;
+    let start = g._ix(24, 0);
     let mut step_state = DijkstraStep::initial(&g, start);
+    let mut i = 0;
     while !step_state.lookup_queue.is_empty() {
         step_state = step_state.next_step(&g);
+        i+=1;
     }
 
     img.connect_draw(move |w, cr| {
-
-        draw_pathfind(w, cr, &g, &step_state,cellsize);
+        draw_pathfind(w, cr, &g, &step_state, cellsize, start);
         gtk::Inhibit(false)
     });
 
