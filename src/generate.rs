@@ -2,22 +2,22 @@ use rand::prelude::*;
 use crate::grid::{Grid};
 use std::collections::HashSet;
 
+fn random_neighbor(neighbors: &Vec<Option<usize>>, r: &mut rand::rngs::ThreadRng) -> Option<usize> {
+    let results: Vec<usize>  = neighbors.iter().filter_map(|x| *x).collect();
+
+    if results.len() == 0 {
+        return None
+    }
+    Some(results[r.gen_range(0, results.len())])
+}
+
 #[allow(dead_code)]
-pub fn binary_tree(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
+pub fn binary_tree(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
     for i in 0..g.cells.len() {
         let c = &g.cells[i];
-        let neighbor = match (g.north_ix(c.row, c.col), g.east_ix(c.row, c.col)) {
-            (Some(c1), Some(c2)) => {
-                let vec = [c1, c2];
-                Some(vec[r.gen_range(0, 2)])
-            }
-            (Some(c1), None) => Some(c1),
-            (None, Some(c1)) => Some(c1),
-            _ => None
-        };
-        match neighbor {
-            Some(c1) => g.link(i, c1),
-            _ => {}
+        if let Some(neighbor) = random_neighbor(
+            &vec![g.north_ix(c.row, c.col), g.east_ix(c.row, c.col)], &mut r) {
+            g.link(i, neighbor)
         }
     }
 }
@@ -50,7 +50,8 @@ pub fn sidewinder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
     }
 }
 
-pub fn aldous_broder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
+#[allow(dead_code)]
+pub fn aldous_broder(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
     let mut visited = HashSet::new();
     let target_size = g.cells.len();
     let mut current_cell = r.gen_range(0, g.cells.len());
@@ -59,14 +60,13 @@ pub fn aldous_broder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
     while visited.len() < target_size {
         let row = g.cells[current_cell].row;
         let col = g.cells[current_cell].col;
-        let neighbors = vec![g.north_ix(row, col), g.east_ix(row,col),
-        g.west_ix(row, col), g.south_ix(row, col)];
-        let results: Vec<usize>  = neighbors.iter()
-            .filter(|x| x.is_some())
-            .map(|x| x.unwrap())
-            .collect();
+        // At least one neighbor is guaranteed to exist, unwrap is safe
+        let random_neighbor = random_neighbor(
+            &vec![g.north_ix(row, col), g.east_ix(row,col),
+                  g.west_ix(row, col), g.south_ix(row, col)],
+            &mut r).unwrap();
 
-        let random_neighbor = results[r.gen_range(0, results.len())];
+
         if !visited.contains(&random_neighbor) {
             g.link(random_neighbor, current_cell);
         }

@@ -2,17 +2,6 @@ use crate::grid::Grid;
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter, Error};
 
-#[allow(unused_code)]
-pub struct Solution {
-    pub path: Vec<usize>
-}
-
-#[allow(unused_code)]
-pub fn solve_dijkstra(g: &Grid, start: (usize, usize), end: (usize, usize)) -> Option<Solution> {
-    None
-
-//    Some(Solution { path: p })
-}
 
 #[derive(Clone, Debug)]
 pub struct PathBacktrackItem {
@@ -45,7 +34,7 @@ impl Display for DijkstraStep {
 impl DijkstraStep {
     pub fn initial(g: &Grid, start: usize) -> DijkstraStep {
         let mut cell_weights: Vec<PathBacktrackItem> = Vec::new();
-        for i in 0..g.cells.len() {
+        for _ in 0..g.cells.len() {
             cell_weights.push(PathBacktrackItem {path_length : -1, parent: -1 });
         }
         cell_weights[start].path_length = 0;

@@ -22,9 +22,7 @@ use gtk::{Application, ApplicationWindow, DrawingArea};
 use cairo::Context;
 use crate::solve::DijkstraStep;
 use std::f64::consts::PI;
-use std::thread::sleep;
-use std::time;
-use palette::{LinSrgb, Lch, Srgb, Hue, Hsv, Gradient};
+use palette::{LinSrgb, Lch, Srgb, Hue};
 
 fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
@@ -141,9 +139,9 @@ fn build_ui(app: &Application) {
     let mut g = Grid::new(25, 25);
     let mut rng = rand::thread_rng();
 
-//    sidewinder(&mut g, &mut rng);
+    sidewinder(&mut g, &mut rng);
 //    binary_tree(&mut g, &mut rng);
-    aldous_broder(&mut g, &mut rng);
+//    aldous_broder(&mut g, &mut rng);
 
     img.set_vexpand(true);
     img.set_hexpand(true);
@@ -156,10 +154,8 @@ fn build_ui(app: &Application) {
 
     let start = g._ix(24, 0);
     let mut step_state = DijkstraStep::initial(&g, start);
-    let mut i = 0;
     while !step_state.lookup_queue.is_empty() {
         step_state = step_state.next_step(&g);
-        i+=1;
     }
 
     img.connect_draw(move |w, cr| {
