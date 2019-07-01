@@ -43,7 +43,6 @@ impl DijkstraStep {
 
         let mut lookup_queue = VecDeque::new();
         for (row, col) in &c.links {
-//            println!("pushing {},{}", row, col);
             let ix = g._ix(*row, *col);
             lookup_queue.push_back(ix);
             cell_weights[ix].path_length = 1;
@@ -60,13 +59,8 @@ impl DijkstraStep {
         let cur_weight = cell_weights[cur_cell].path_length;
 
         let c = &g.cells[cur_cell];
-//        for (row, col) in &c.links {
-//            print!("({}, {}) ", row, col);
-//        }
-//        println!();
         for (row, col) in &c.links {
             let ix = g._ix(*row, *col);
-//            println!("cur: {}, ix: {}", cur_cell, ix);
             if cell_weights[ix].parent < 0 {
                 lookup_queue.push_back(ix);
                 cell_weights[ix].path_length = cur_weight + 1;

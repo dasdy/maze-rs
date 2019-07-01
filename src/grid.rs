@@ -36,7 +36,6 @@ pub struct Grid {
     pub cells: Vec<Cell>,
 }
 
-#[allow(dead_code)]
 impl Grid {
     pub fn new(row: usize, col: usize) -> Grid {
         let mut gridarr = Vec::new();
@@ -48,31 +47,13 @@ impl Grid {
         Grid { width: col, height: row, cells: gridarr }
     }
 
+    #[allow(dead_code)]
     pub fn access(&self, row: usize, col: usize) -> Option<&Cell> {
-        match self._ix_opt(row, col) {
-            Some(ix) => Some(&self.cells[ix]),
-            None => None
-        }
+        self._ix_opt(row, col).map(|ix| &self.cells[ix])
     }
 
     pub fn _ix(&self, row: usize, col: usize) -> usize {
         col + row * self.width
-    }
-
-    pub fn north(&self, row: usize, col: usize) -> Option<&Cell> {
-        return self.access(row.wrapping_sub(1), col);
-    }
-
-    pub fn east(&self, row: usize, col: usize) -> Option<&Cell> {
-        return self.access(row, col.wrapping_add(1));
-    }
-
-    pub fn west(&self, row: usize, col: usize) -> Option<&Cell> {
-        return self.access(row, col.wrapping_sub(1));
-    }
-
-    pub fn south(&self, row: usize, col: usize) -> Option<&Cell> {
-        return self.access(row.wrapping_add(1), col);
     }
 
     pub fn _ix_opt(&self, row: usize, col: usize) -> Option<usize> {
@@ -105,6 +86,7 @@ impl Grid {
         &(self.cells[ix2].links).insert((a_row, a_col));
     }
 
+    #[allow(dead_code)]
     pub fn to_img_buf(&self, cellsize: usize) -> image::RgbImage {
         let imwidth = (self.width * cellsize + 1) as u32;
         let imheigh = (self.height * cellsize + 1) as u32;
@@ -120,13 +102,12 @@ impl Grid {
 
             let mut draw_line =
                 |item: &Option<usize>, start: (f32, f32), end: (f32, f32)| {
-                    match item {
-                        Some(r_idx) if !cur_cell.linked(&(self.cells[*r_idx])) => {
+                    if let Some(r_idx) = item {
+                        if cur_cell.linked(&(self.cells[*r_idx])) {
                             imageproc::drawing::draw_line_segment_mut(
                                 &mut imgbuf, start, end, pixel_color,
                             );
                         }
-                        _ => {}
                     }
                 };
             fn asf32(ix: usize, size: usize) -> f32 {
@@ -147,6 +128,7 @@ impl Grid {
         return imgbuf;
     }
 
+    #[allow(dead_code)]
     pub fn to_dot(&self) -> String {
         let mut res = "graph g {".to_owned();
 
@@ -180,14 +162,14 @@ impl Display for Grid {
                 let body = "   ";
                 let current_cell = &self.cells[self._ix(i, j)];
                 let f =
-                    |neighbour: Option<&Cell>, ok: &str, bound: &str| -> String {
-                    match neighbour {
-                        Some(c) if c.linked(&current_cell) => ok.to_string(),
-                        _ => bound.to_string()
-                    }
-                };
-                let east_bound = f(self.east(i, j), " ", "|");
-                let south_bound = f(self.south(i, j), "   ", "---");
+                    |neighbour: Option<usize>, ok: &str, bound: &str| -> String {
+                        match neighbour {
+                            Some(c) if current_cell.linked(&self.cells[c]) => ok.to_string(),
+                            _ => bound.to_string()
+                        }
+                    };
+                let east_bound = f(self.east_ix(i, j), " ", "|");
+                let south_bound = f(self.south_ix(i, j), "   ", "---");
 
                 top.push_str(body);
                 top.push_str(&east_bound);
@@ -198,11 +180,5 @@ impl Display for Grid {
             writeln!(f, "{}", bottom)?;
         }
         Result::Ok(())
-    }
-}
-
-impl Display for Cell {
-    fn fmt(&self, _f: &mut Formatter) -> Result<(), Error> {
-        unimplemented!()
     }
 }

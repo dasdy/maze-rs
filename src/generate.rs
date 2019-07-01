@@ -1,6 +1,16 @@
 use rand::prelude::*;
 use crate::grid::{Grid};
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
+
+fn cell_neighbors(g: &Grid, cell_idx: usize) -> Vec<usize> {
+    let row = g.cells[cell_idx].row;
+    let col= g.cells[cell_idx].col;
+    let neighbors = &vec![g.north_ix(row, col), g.east_ix(row,col),
+                  g.west_ix(row, col), g.south_ix(row, col)];
+
+    let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
+    neighbors
+}
 
 fn random_neighbor(neighbors: &Vec<Option<usize>>, r: &mut rand::rngs::ThreadRng) -> Option<usize> {
     let results: Vec<usize>  = neighbors.iter().filter_map(|x| *x).collect();
@@ -37,9 +47,8 @@ pub fn sidewinder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
                 let oix1 = g.north_ix(r_i, r_j);
                 let ix2 = g._ix(r_i, r_j);
                 current_run.clear();
-                match oix1 {
-                    Some(ix1) => g.link(ix1, ix2),
-                    _ => {}
+                if let Some(ix1) = oix1 {
+                    g.link(ix1, ix2)
                 }
             } else {
                 let ix1 = g._ix(i, j);
@@ -75,4 +84,58 @@ pub fn aldous_broder(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
 
     }
 
+}
+
+fn hunt_kill_unvisited_cell_neighbors(g: &Grid, cell_idx: usize) -> Vec<usize> {
+    cell_neighbors(g, cell_idx).iter().map(|x| *x)
+        .filter(|x| g.cells[*x].links.len() == 0).collect()
+}
+
+fn hunt_kill_visited_cell_neighbors(g: &Grid, cell_idx: usize) -> Vec<usize> {
+    cell_neighbors(g, cell_idx).iter().map(|x| *x)
+        .filter(|x| g.cells[*x].links.len() != 0).collect()
+}
+
+#[allow(dead_code)]
+pub fn hunt_and_kill(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
+    let mut current_idx = Some(r.gen_range(0, g.cells.len()));
+    while current_idx.is_some() {
+        let cell_neighbors =
+            hunt_kill_unvisited_cell_neighbors(g, current_idx.unwrap());
+
+        if cell_neighbors.len() != 0 {
+            let next_cell = cell_neighbors[r.gen_range(0, cell_neighbors.len())];
+            g.link(current_idx.unwrap(), next_cell);
+            current_idx = Some(next_cell);
+        } else {
+            current_idx = None;
+            for i in 0..g.cells.len() {
+                let i_neighbors = hunt_kill_visited_cell_neighbors(g, i);
+                if g.cells[i].links.len() == 0 && i_neighbors.len() != 0 {
+                    current_idx = Some(i);
+                    g.link(i, i_neighbors[r.gen_range(0, i_neighbors.len())]);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub fn recursive_backtracker(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
+    let current_idx = r.gen_range(0, g.cells.len());
+    let mut cell_stack = VecDeque::new();
+    cell_stack.push_back(current_idx);
+
+    while !cell_stack.is_empty() {
+        let current_idx = *cell_stack.back().unwrap();
+        let neighbors = hunt_kill_unvisited_cell_neighbors(g, current_idx);
+        if neighbors.is_empty() {
+            cell_stack.pop_back();
+        } else {
+            let n_ix = neighbors[r.gen_range(0, neighbors.len())];
+            g.link(current_idx, n_ix);
+            cell_stack.push_back(n_ix);
+        }
+    }
 }

@@ -139,9 +139,11 @@ fn build_ui(app: &Application) {
     let mut g = Grid::new(25, 25);
     let mut rng = rand::thread_rng();
 
-    sidewinder(&mut g, &mut rng);
+//    sidewinder(&mut g, &mut rng);
 //    binary_tree(&mut g, &mut rng);
 //    aldous_broder(&mut g, &mut rng);
+//    hunt_and_kill(&mut g, &mut rng);
+    recursive_backtracker(&mut g, &mut rng);
 
     img.set_vexpand(true);
     img.set_hexpand(true);
