@@ -5,7 +5,6 @@ extern crate imageproc;
 extern crate gtk;
 extern crate gio;
 extern crate gdk_pixbuf;
-extern crate palette;
 
 use gtk::prelude::*;
 use gio::prelude::*;
@@ -22,7 +21,6 @@ use gtk::{Application, ApplicationWindow, DrawingArea};
 use cairo::Context;
 use crate::solve::DijkstraStep;
 use std::f64::consts::PI;
-use palette::{LinSrgb, Lch, Srgb, Hue};
 
 fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
@@ -57,8 +55,8 @@ fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
     }
 }
 
-fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraStep, cellsize: f64,
-                 start: usize) {
+fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid,
+                 step_state: &DijkstraStep, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
     cr.scale(scalex, scaley);
@@ -90,43 +88,90 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid, step_state: &DijkstraS
         cr.stroke();
     };
 
-    let end = g.cells.len() - 1;
-    let cur_cell = &g.cells[start];
-    let end_cell = &g.cells[end];
+    let rect = |i: usize| {
+        let row = g.cells[i].row as f64;
+        let col = g.cells[i].col as f64;
+        let (x1, y1) = (col * cellsize, row * cellsize);
+        cr.rectangle(x1, y1, cellsize, cellsize);
+        cr.fill();
+    };
+
+    let mut max_idx = 0;
+    let mut min_idx = 0;
+    let mut max_length = step_state.cell_weights[max_idx].path_length;
+    let mut min_length = max_length;
+    for (i, c) in step_state.cell_weights.iter().enumerate() {
+        if c.path_length > max_length {
+            max_length = c.path_length;
+            max_idx = i;
+        }
+        if c.path_length < min_length {
+            min_length = c.path_length;
+            min_idx = i;
+        }
+    }
+
+
+    let cur_cell = &g.cells[min_idx];
+    let end_cell = &g.cells[max_idx];
+
+
+    cr.set_line_width(6.0);
+    for (i, c) in step_state.cell_weights.iter().enumerate() {
+        let intensity= (max_length - c.path_length) as f64 / max_length as f64;
+        let dark = intensity;
+        let bright = 0.5 + intensity / 2.;
+        cr.set_source_rgb(dark, bright, dark);
+        rect(i);
+    }
+
+
     let x1 = pixcoord(cur_cell.col);
     let x2 = pixcoord(end_cell.col);
 
     let y1 = pixcoord(cur_cell.row);
     let y2 = pixcoord(end_cell.row);
+    cr.set_line_width(1.0);
+    cr.set_source_rgb(0.,0.,0.);
     circle(x1,y1);
     cr.stroke();
     circle(x2,y2);
     cr.stroke();
-
-    cr.set_line_width(3.0);
-    for (i, c) in step_state.cell_weights.iter().enumerate() {
-        if c.parent >= 0 {
-            let base_color: Lch = Srgb::new(0.8, 0.2, 0.1).into();
-            let new_color =
-                LinSrgb::from(base_color.shift_hue((c.path_length as f32) * 10.));
-
-
-            cr.set_source_rgb(new_color.red as f64, new_color.green as f64, new_color.blue as f64);
-
-            line(i as i32, c.parent);
-        }
-    }
-
-
-    if step_state.cell_weights[end].parent > 0 {
-        let mut cur_cell = end as i32;
-        cr.set_source_rgb(1., 1., 0.);
+    if step_state.cell_weights[max_idx].parent >= 0 {
+        let mut cur_cell = max_idx as i32;
+        cr.set_source_rgb(1., 0., 0.);
         cr.set_line_width(4.0);
-        while cur_cell != (start as i32) {
+        while cur_cell != (min_idx as i32) {
             line(cur_cell, step_state.cell_weights[cur_cell as usize].parent);
             cur_cell = step_state.cell_weights[cur_cell as usize].parent;
         }
     }
+}
+
+fn solve_with_longest_path(g: &Grid) -> DijkstraStep {
+    let start = 0;
+    // solve initially from random point
+    let mut result = DijkstraStep::initial(&g, start);
+    while !result.lookup_queue.is_empty() {
+        result = result.next_step(&g);
+    }
+
+    let mut max_length = 0;
+    let mut max_idx = 0;
+    for (i, c) in result.cell_weights.iter().enumerate() {
+        if c.path_length > max_length {
+            max_length = c.path_length;
+            max_idx = i;
+        }
+    }
+
+    if max_idx != 0 {
+        result = DijkstraStep::initial(&g, start);
+        while !result.lookup_queue.is_empty() {
+            result = result.next_step(&g);
+        }
+    }
+    result
 }
 
 fn build_ui(app: &Application) {
@@ -149,24 +194,21 @@ fn build_ui(app: &Application) {
     img.set_hexpand(true);
     let g_copy = g.clone();
     let cellsize = 10.;
+
+
+    let step_state= solve_with_longest_path(&g);
+
+    img.connect_draw(move |w, cr| {
+        draw_pathfind(w, cr, &g, &step_state, cellsize);
+        gtk::Inhibit(false)
+    });
+
     img.connect_draw(move |w, cr| {
         draw_maze(w, cr, &g_copy, cellsize);
         gtk::Inhibit(false)
     });
 
-    let start = g._ix(24, 0);
-    let mut step_state = DijkstraStep::initial(&g, start);
-    while !step_state.lookup_queue.is_empty() {
-        step_state = step_state.next_step(&g);
-    }
-
-    img.connect_draw(move |w, cr| {
-        draw_pathfind(w, cr, &g, &step_state, cellsize, start);
-        gtk::Inhibit(false)
-    });
-
     window.add(&vbox);
-
     window.show_all();
 }
 

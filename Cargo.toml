@@ -14,7 +14,6 @@ imageproc = "0.18.0"
 gdk-pixbuf = "0.6.0"
 cairo-rs = "0.6.0"
 gio = "0.6.0"
-palette = "0.4"
 
 [dependencies.gtk]
 version = "0.6.0"
