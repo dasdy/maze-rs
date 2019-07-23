@@ -1,16 +1,6 @@
 use rand::prelude::*;
-use crate::grid::{Grid};
+use crate::grid::{AbstractGrid, Grid};
 use std::collections::{HashSet, VecDeque};
-
-fn cell_neighbors(g: &Grid, cell_idx: usize) -> Vec<usize> {
-    let row = g.cells[cell_idx].row;
-    let col= g.cells[cell_idx].col;
-    let neighbors = &vec![g.north_ix(row, col), g.east_ix(row,col),
-                  g.west_ix(row, col), g.south_ix(row, col)];
-
-    let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
-    neighbors
-}
 
 fn random_neighbor(neighbors: &Vec<Option<usize>>, r: &mut rand::rngs::ThreadRng) -> Option<usize> {
     let results: Vec<usize>  = neighbors.iter().filter_map(|x| *x).collect();
@@ -86,14 +76,14 @@ pub fn aldous_broder(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
 
 }
 
-fn hunt_kill_unvisited_cell_neighbors(g: &Grid, cell_idx: usize) -> Vec<usize> {
-    cell_neighbors(g, cell_idx).iter().map(|x| *x)
-        .filter(|x| g.cells[*x].links.len() == 0).collect()
+fn hunt_kill_unvisited_cell_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
+    g.neighbours(cell_idx).iter().map(|x| *x)
+        .filter(|x| g.links(*x).len() == 0).collect()
 }
 
-fn hunt_kill_visited_cell_neighbors(g: &Grid, cell_idx: usize) -> Vec<usize> {
-    cell_neighbors(g, cell_idx).iter().map(|x| *x)
-        .filter(|x| g.cells[*x].links.len() != 0).collect()
+fn hunt_kill_visited_cell_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
+    g.neighbours(cell_idx).iter().map(|x| *x)
+        .filter(|x| g.links(*x).len() != 0).collect()
 }
 
 #[allow(dead_code)]
@@ -122,8 +112,8 @@ pub fn hunt_and_kill(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
 }
 
 #[allow(dead_code)]
-pub fn recursive_backtracker(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
-    let current_idx = r.gen_range(0, g.cells.len());
+pub fn recursive_backtracker(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
+    let current_idx = r.gen_range(0, g.len());
     let mut cell_stack = VecDeque::new();
     cell_stack.push_back(current_idx);
 

@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter, Error};
+use std::f64::consts::PI;
 
 #[derive(Clone)]
 pub struct Cell {
@@ -180,5 +181,137 @@ impl Display for Grid {
             writeln!(f, "{}", bottom)?;
         }
         Result::Ok(())
+    }
+}
+
+pub struct PolarCell {
+    pub inner_r: f64,
+    pub outer_r: f64,
+    pub theta_cw: f64,
+    pub theta_ccw: f64,
+    pub row: usize,
+    pub col: usize,
+    pub links: HashSet<(usize, usize)>
+}
+
+impl PolarCell {
+    pub fn new(ring_height: usize, cell_count: usize, row: usize, col: usize) -> PolarCell {
+        let theta = 2.* PI/(cell_count as f64);
+        let inner_r = (ring_height * row) as f64;
+        let outer_r = (ring_height * (row + 1)) as f64;
+        let theta_cw = theta * (col as f64);
+        let theta_ccw = theta * ((col + 1) as f64);
+        let links = HashSet::new();
+        PolarCell {inner_r, outer_r, theta_cw, theta_ccw, row, col, links}
+    }
+}
+
+pub struct CircularGrid {
+    pub width: usize,
+    pub height: usize,
+    pub cells: Vec<PolarCell>
+}
+
+pub trait AbstractGrid {
+    fn neighbours(&self, ix: usize) -> Vec<usize>;
+    fn links(&self, ix: usize) -> HashSet<(usize, usize)>;
+    fn len(&self) -> usize;
+    fn link(&mut self, ix1: usize, ix2: usize);
+}
+
+impl AbstractGrid for CircularGrid {
+    fn neighbours(&self, ix: usize) -> Vec<usize> {
+        let row = self.cells[ix].row;
+        let col= self.cells[ix].col;
+        let neighbors = &vec![self.north_ix(row, col), self.east_ix(row,col),
+                    self.west_ix(row, col), self.south_ix(row, col)];
+
+        let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
+        neighbors
+    }
+    fn links(&self, ix: usize) -> HashSet<(usize, usize)> {
+        self.cells[ix].links.iter().cloned().collect()
+    }
+    fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    fn link(&mut self, ix1: usize, ix2: usize) {
+        let PolarCell { row: a_row, col: a_col, .. } = self.cells[ix1];
+        let PolarCell { row: b_row, col: b_col, .. } = self.cells[ix2];
+        &(self.cells[ix1].links).insert((b_row, b_col));
+        &(self.cells[ix2].links).insert((a_row, a_col));
+    }
+}
+
+impl AbstractGrid for Grid {
+    fn neighbours(&self, ix: usize) -> Vec<usize> {
+        let row = self.cells[ix].row;
+        let col= self.cells[ix].col;
+        let neighbors = &vec![self.north_ix(row, col), self.east_ix(row,col),
+                    self.west_ix(row, col), self.south_ix(row, col)];
+
+        let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
+        neighbors
+    }
+
+    fn links(&self, ix: usize) -> HashSet<(usize, usize)> {
+        self.cells[ix].links.iter().cloned().collect()
+    }
+
+        fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    fn link(&mut self, ix1: usize, ix2: usize) {
+        let Cell { row: a_row, col: a_col, .. } = self.cells[ix1];
+        let Cell { row: b_row, col: b_col, .. } = self.cells[ix2];
+        &(self.cells[ix1].links).insert((b_row, b_col));
+        &(self.cells[ix2].links).insert((a_row, a_col));
+    }
+}
+
+impl CircularGrid {
+
+    pub fn from_rect_grid(g: &Grid, ring_height: usize) -> CircularGrid {
+        let mut cells = Vec::new();
+        let height = g.height;
+        let width = g.width;
+        for cell in g.cells.iter() {
+            let mut new_cell = PolarCell::new(ring_height, width, cell.row, cell.col);
+            new_cell.links = cell.links.iter().cloned().collect();
+            cells.push(new_cell);
+        }
+
+        CircularGrid {height, width, cells}
+    }
+
+    pub fn _ix(&self, row: usize, col: usize) -> usize {
+        col + row * self.width
+    }
+
+    pub fn _ix_opt(&self, row: usize, col: usize) -> Option<usize> {
+        if row >= self.height || col >= self.width {
+            return None;
+        }
+        return Some(self._ix(row, col));
+    }
+
+    pub fn north_ix(&self, row: usize, col: usize) -> Option<usize> {
+        return self._ix_opt(row.wrapping_sub(1), col);
+    }
+
+    pub fn east_ix(&self, row: usize, col: usize) -> Option<usize> {
+        let east_col = if col == self.width - 1  { 0 } else {col + 1};
+        return self._ix_opt(row, east_col);
+    }
+
+    pub fn west_ix(&self, row: usize, col: usize) -> Option<usize> {
+        let west_col = if col == 0 { self.width - 1 } else {col - 1};
+        return self._ix_opt(row, west_col);
+    }
+
+    pub fn south_ix(&self, row: usize, col: usize) -> Option<usize> {
+        return self._ix_opt(row.wrapping_add(1), col);
     }
 }

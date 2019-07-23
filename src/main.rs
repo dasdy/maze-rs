@@ -212,12 +212,105 @@ fn build_ui(app: &Application) {
     window.show_all();
 }
 
+fn build_polar_ui(app: &Application) {
+    let window = ApplicationWindow::new(app);
+    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    window.set_default_size(400, 400);
+
+    let img = gtk::DrawingArea::new();
+    vbox.add(&img);
+
+//    sidewinder(&mut g, &mut rng);
+//    binary_tree(&mut g, &mut rng);
+//    aldous_broder(&mut g, &mut rng);
+//    hunt_and_kill(&mut g, &mut rng);
+    
+
+    img.set_vexpand(true);
+    img.set_hexpand(true);
+
+    let mut g = Grid::new(10, 10);
+    let mut rng = rand::thread_rng();
+    recursive_backtracker(&mut g, &mut rng);
+    println!("{}", g);
+    let ring_height = 20;
+    let g_polar = grid::CircularGrid::from_rect_grid(&g, ring_height);
+
+
+    img.connect_draw(move |w, cr| {
+        cr.set_line_width(1.0);
+        let center_x = w.get_allocated_width() as f64 / 2.;
+        let center_y = w.get_allocated_height() as f64 / 2.;
+        
+        cr.arc(center_x, center_y, (ring_height * g.height) as f64, 0., 2.*PI);
+        for cell in g_polar.cells.iter() {
+            // if cell.row > 1 {
+            //     break;
+            // }
+            // print!("({}, {}) ->", cell.row, cell.col);
+            // for (r, c) in cell.links.iter() {
+            //     print!("({}, {}), ", r, c);
+            // }
+            
+            // print!(", North: ({}), East: ({})", 
+            //     match g_polar.north_ix(cell.row, cell.col) {
+            //         Some(_ix) => format!("{}, {}", g_polar.cells[_ix].row, g_polar.cells[_ix].col),
+            //         _ => format!("None")
+            //     },
+            //     match g_polar.east_ix(cell.row, cell.col) {
+            //         Some(_ix) => format!("{}, {}", g_polar.cells[_ix].row, g_polar.cells[_ix].col),
+            //         _ => format!("None")
+            //     }
+            //     );
+            
+            let north = g_polar.north_ix(cell.row, cell.col);
+            
+            match north {
+                Some(ix)  => {
+                    if !cell.links.contains(&(g_polar.cells[ix].row, g_polar.cells[ix].col)) {
+                        cr.set_line_width(1.0);
+                        // print!("north!");
+                        cr.arc(center_x, center_y, cell.inner_r, cell.theta_cw, cell.theta_ccw);
+                        cr.stroke();
+                    } else {
+                        cr.set_line_width(0.3);
+                    }
+                    
+                }
+                _ => {}
+            }
+
+            let east = g_polar.east_ix(cell.row, cell.col).unwrap();
+            
+            if !cell.links.contains(&(g_polar.cells[east].row, g_polar.cells[east].col)) { 
+                cr.set_line_width(1.0);
+                // print!(" east! ");
+                let cx = center_x + cell.inner_r * cell.theta_ccw.cos();
+                let dx = center_x + cell.outer_r * cell.theta_ccw.cos();
+                let cy = center_x + cell.inner_r * cell.theta_ccw.sin();
+                let dy = center_x + cell.outer_r * cell.theta_ccw.sin();
+                cr.move_to(cx, cy);
+                cr.line_to(dx, dy);
+                cr.stroke();
+            } else {
+                cr.set_line_width(0.3);
+            }
+            
+            println!();
+        }
+        gtk::Inhibit(false)
+    });
+
+    window.add(&vbox);
+    window.show_all();
+}
+
 fn create_gtk_app() {
     let application = Application::new("com.github.gtk-rs.examples.basic",
                                        Default::default())
         .expect("failed to initialize GTK application");
 
-    application.connect_activate(build_ui);
+    application.connect_activate(build_polar_ui);
 
     application.run(&[]);
 }
