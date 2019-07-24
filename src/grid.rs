@@ -184,6 +184,7 @@ impl Display for Grid {
     }
 }
 
+#[derive(Clone)]
 pub struct PolarCell {
     pub inner_r: f64,
     pub outer_r: f64,
@@ -206,6 +207,7 @@ impl PolarCell {
     }
 }
 
+#[derive(Clone)]
 pub struct CircularGrid {
     pub width: usize,
     pub height: usize,
@@ -259,7 +261,7 @@ impl AbstractGrid for Grid {
         self.cells[ix].links.iter().cloned().collect()
     }
 
-        fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.cells.len()
     }
 

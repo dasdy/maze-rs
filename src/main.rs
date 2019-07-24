@@ -231,10 +231,11 @@ fn build_polar_ui(app: &Application) {
 
     let mut g = Grid::new(10, 10);
     let mut rng = rand::thread_rng();
-    recursive_backtracker(&mut g, &mut rng);
-    println!("{}", g);
     let ring_height = 20;
-    let g_polar = grid::CircularGrid::from_rect_grid(&g, ring_height);
+    let mut g_polar = grid::CircularGrid::from_rect_grid(&g, ring_height);
+    recursive_backtracker(&mut g_polar, &mut rng);
+    // println!("{}", g);
+    // let g_copy = g_polar.clone();
 
 
     img.connect_draw(move |w, cr| {
@@ -244,24 +245,6 @@ fn build_polar_ui(app: &Application) {
         
         cr.arc(center_x, center_y, (ring_height * g.height) as f64, 0., 2.*PI);
         for cell in g_polar.cells.iter() {
-            // if cell.row > 1 {
-            //     break;
-            // }
-            // print!("({}, {}) ->", cell.row, cell.col);
-            // for (r, c) in cell.links.iter() {
-            //     print!("({}, {}), ", r, c);
-            // }
-            
-            // print!(", North: ({}), East: ({})", 
-            //     match g_polar.north_ix(cell.row, cell.col) {
-            //         Some(_ix) => format!("{}, {}", g_polar.cells[_ix].row, g_polar.cells[_ix].col),
-            //         _ => format!("None")
-            //     },
-            //     match g_polar.east_ix(cell.row, cell.col) {
-            //         Some(_ix) => format!("{}, {}", g_polar.cells[_ix].row, g_polar.cells[_ix].col),
-            //         _ => format!("None")
-            //     }
-            //     );
             
             let north = g_polar.north_ix(cell.row, cell.col);
             
@@ -296,7 +279,7 @@ fn build_polar_ui(app: &Application) {
                 cr.set_line_width(0.3);
             }
             
-            println!();
+            // println!();
         }
         gtk::Inhibit(false)
     });

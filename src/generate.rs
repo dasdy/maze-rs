@@ -50,21 +50,16 @@ pub fn sidewinder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
 }
 
 #[allow(dead_code)]
-pub fn aldous_broder(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
+pub fn aldous_broder(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
     let mut visited = HashSet::new();
-    let target_size = g.cells.len();
-    let mut current_cell = r.gen_range(0, g.cells.len());
+    let target_size = g.len();
+    let mut current_cell = r.gen_range(0, g.len());
     visited.insert(current_cell);
 
     while visited.len() < target_size {
-        let row = g.cells[current_cell].row;
-        let col = g.cells[current_cell].col;
         // At least one neighbor is guaranteed to exist, unwrap is safe
-        let random_neighbor = random_neighbor(
-            &vec![g.north_ix(row, col), g.east_ix(row,col),
-                  g.west_ix(row, col), g.south_ix(row, col)],
-            &mut r).unwrap();
-
+        let neighbours = g.neighbours(current_cell);
+        let random_neighbor = neighbours[r.gen_range(0, neighbours.len())];
 
         if !visited.contains(&random_neighbor) {
             g.link(random_neighbor, current_cell);
@@ -76,22 +71,22 @@ pub fn aldous_broder(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
 
 }
 
-fn hunt_kill_unvisited_cell_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
+fn unvisited_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
     g.neighbours(cell_idx).iter().map(|x| *x)
         .filter(|x| g.links(*x).len() == 0).collect()
 }
 
-fn hunt_kill_visited_cell_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
+fn visited_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
     g.neighbours(cell_idx).iter().map(|x| *x)
         .filter(|x| g.links(*x).len() != 0).collect()
 }
 
 #[allow(dead_code)]
-pub fn hunt_and_kill(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
-    let mut current_idx = Some(r.gen_range(0, g.cells.len()));
+pub fn hunt_and_kill(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
+    let mut current_idx = Some(r.gen_range(0, g.len()));
     while current_idx.is_some() {
         let cell_neighbors =
-            hunt_kill_unvisited_cell_neighbors(g, current_idx.unwrap());
+            unvisited_neighbors(g, current_idx.unwrap());
 
         if cell_neighbors.len() != 0 {
             let next_cell = cell_neighbors[r.gen_range(0, cell_neighbors.len())];
@@ -99,9 +94,9 @@ pub fn hunt_and_kill(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
             current_idx = Some(next_cell);
         } else {
             current_idx = None;
-            for i in 0..g.cells.len() {
-                let i_neighbors = hunt_kill_visited_cell_neighbors(g, i);
-                if g.cells[i].links.len() == 0 && i_neighbors.len() != 0 {
+            for i in 0..g.len() {
+                let i_neighbors = visited_neighbors(g, i);
+                if g.links(i).len() == 0 && i_neighbors.len() != 0 {
                     current_idx = Some(i);
                     g.link(i, i_neighbors[r.gen_range(0, i_neighbors.len())]);
                     break;
@@ -119,7 +114,7 @@ pub fn recursive_backtracker(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng
 
     while !cell_stack.is_empty() {
         let current_idx = *cell_stack.back().unwrap();
-        let neighbors = hunt_kill_unvisited_cell_neighbors(g, current_idx);
+        let neighbors = unvisited_neighbors(g, current_idx);
         if neighbors.is_empty() {
             cell_stack.pop_back();
         } else {
