@@ -24,6 +24,7 @@ pub struct Grid {
 }
 
 impl Grid {
+    #[allow(dead_code)]
     pub fn new(row: usize, col: usize) -> Grid {
         let mut gridarr = Vec::new();
         for i in 0..row {
@@ -188,15 +189,15 @@ impl Display for PolarCell {
         self.row, self.col, self.columns, self.clockwise, self.counter_clockwise, match self.inward {
             Some(ix) => format!("{}", ix),
             _ => format!("None")
-        });
+        })?;
         for o in &self.outward {
-            write!(f, "{}, ", o);
+            write!(f, "{}, ", o)?;
         };
-        write!(f, "], links: [");
+        write!(f, "], links: [")?;
         for o in &self.links {
-            write!(f, "{}, ", o);
+            write!(f, "{}, ", o)?;
         }
-        write!(f, "])");
+        write!(f, "])")?;
         return Ok(());
     }
 }
@@ -314,20 +315,17 @@ impl CircularGrid {
         CircularGrid {height: rows, cells}
     }
 
+    #[allow(dead_code)]
     pub fn outward_ixs(&self, ix: usize) -> Vec<usize> {
         return self.cells[ix].outward.clone();
     }
 
     pub fn cw_ix(&self, ix: usize) -> usize {
-        // let east_col = if col == self.width - 1  { 0 } else {col + 1};
-        // return self._ix(row, east_col);
         self.cells[ix].clockwise
     }
 
+    #[allow(dead_code)]
     pub fn ccw_ix(&self, ix: usize) -> usize {
-        // let west_col = if col == 0 { self.width - 1 } else {col - 1};
-        // return self._ix_opt(row, west_col);
-
         self.cells[ix].counter_clockwise
     }
 
@@ -336,6 +334,7 @@ impl CircularGrid {
         self.cells[ix].inward
     }
 
+    #[allow(dead_code)]
     pub fn to_dot(&self) -> String {
         let mut res = "graph g {".to_owned();
 

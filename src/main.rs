@@ -13,7 +13,8 @@ mod grid;
 mod generate;
 mod solve;
 
-use grid::{Grid, CircularGrid, AbstractGrid};
+#[allow(dead_code)]
+use grid::{Grid};
 use generate::*;
 
 
@@ -22,6 +23,7 @@ use cairo::Context;
 use crate::solve::DijkstraStep;
 use std::f64::consts::PI;
 
+#[allow(dead_code)]
 fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
@@ -55,6 +57,7 @@ fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
     }
 }
 
+#[allow(dead_code)]
 fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid,
                  step_state: &DijkstraStep, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
@@ -148,6 +151,7 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid,
     }
 }
 
+#[allow(dead_code)]
 fn solve_with_longest_path(g: &Grid) -> DijkstraStep {
     let start = 0;
     // solve initially from random point
@@ -174,6 +178,7 @@ fn solve_with_longest_path(g: &Grid) -> DijkstraStep {
     result
 }
 
+#[allow(dead_code)]
 fn build_ui(app: &Application) {
     let window = ApplicationWindow::new(app);
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -212,6 +217,7 @@ fn build_ui(app: &Application) {
     window.show_all();
 }
 
+#[allow(dead_code)]
 fn build_polar_ui(app: &Application) {
     let window = ApplicationWindow::new(app);
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
