@@ -13,7 +13,6 @@ mod grid;
 mod generate;
 mod solve;
 
-#[allow(dead_code)]
 use grid::{Grid};
 use generate::*;
 
@@ -230,15 +229,21 @@ fn build_polar_ui(app: &Application) {
     img.set_hexpand(true);
 
     let mut rng = rand::thread_rng();
-    let ring_height = 20;
-    let mut g_polar = grid::CircularGrid::new(4);
+    let actual_ring_height = 20;
+    let mut g_polar = grid::CircularGrid::new(10);
     recursive_backtracker(&mut g_polar, &mut rng);
     img.connect_draw(move |w, cr| {
-        cr.set_line_width(1.0);
-        let center_x = w.get_allocated_width() as f64 / 2.;
-        let center_y = w.get_allocated_height() as f64 / 2.;
         
-        cr.arc(center_x, center_y, (ring_height * g_polar.height) as f64, 0., 2.*PI);
+        let scalex = w.get_allocated_width() as f64 / (g_polar.height * actual_ring_height * 2) as f64;
+        let scaley = w.get_allocated_height() as f64 / (g_polar.height * actual_ring_height * 2) as f64;
+        cr.scale(scalex, scaley);
+        cr.set_line_width(1.0);
+
+        let center_x = g_polar.height as f64 * actual_ring_height as f64;
+        let center_y = center_x;
+        let ring_height = actual_ring_height as f64;
+        
+        cr.arc(center_x, center_y, ring_height * g_polar.height as f64, 0., 2.*PI);
         cr.stroke();
         for (i, cell) in g_polar.cells.iter().enumerate() {
             if i == 0 {
@@ -246,22 +251,18 @@ fn build_polar_ui(app: &Application) {
             }
             let inward = g_polar.inward_ix(i).unwrap();
             let theta = 2.* PI/(cell.columns as f64);
-            let inner_r = (ring_height * cell.row) as f64;
-            let outer_r = (ring_height * (cell.row + 1)) as f64;
+            let inner_r = ring_height * cell.row as f64;
+            let outer_r = ring_height * (cell.row + 1) as f64;
             let theta_cw = theta * (cell.col as f64);
             let theta_ccw = theta * ((cell.col + 1) as f64);
             if !cell.links.contains(&inward) {
-                cr.set_line_width(1.0);
                 cr.arc(center_x, center_y, inner_r, theta_cw, theta_ccw);
                 cr.stroke();
-            } else {
-                cr.set_line_width(0.3);
-            }   
+            }
 
             let east = g_polar.cw_ix(i);
             
             if !cell.links.contains(&east) { 
-                cr.set_line_width(1.0);
                 let cx = center_x + inner_r * theta_ccw.cos();
                 let dx = center_x + outer_r * theta_ccw.cos();
                 let cy = center_x + inner_r * theta_ccw.sin();
@@ -269,8 +270,6 @@ fn build_polar_ui(app: &Application) {
                 cr.move_to(cx, cy);
                 cr.line_to(dx, dy);
                 cr.stroke();
-            } else {
-                cr.set_line_width(0.3);
             }
         }
         gtk::Inhibit(false)
@@ -281,8 +280,7 @@ fn build_polar_ui(app: &Application) {
 }
 
 fn create_gtk_app() {
-    let application = Application::new("com.github.gtk-rs.examples.basic",
-                                       Default::default())
+    let application = Application::new("com.dasdy.mazes", Default::default())
         .expect("failed to initialize GTK application");
 
     application.connect_activate(build_polar_ui);
