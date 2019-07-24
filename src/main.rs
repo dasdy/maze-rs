@@ -13,7 +13,7 @@ mod grid;
 mod generate;
 mod solve;
 
-use grid::Grid;
+use grid::{Grid, CircularGrid, AbstractGrid};
 use generate::*;
 
 
@@ -34,7 +34,7 @@ fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
         let draw_line =
             |item: &Option<usize>, end: (f64, f64)| {
                 match item {
-                    Some(r_idx) if !cur_cell.linked(&(g.cells[*r_idx])) =>
+                    Some(r_idx) if !cur_cell.links.contains(r_idx) =>
                         cr.line_to(end.0, end.1),
                     _ => cr.move_to(end.0, end.1)
                 }
@@ -220,66 +220,52 @@ fn build_polar_ui(app: &Application) {
     let img = gtk::DrawingArea::new();
     vbox.add(&img);
 
-//    sidewinder(&mut g, &mut rng);
-//    binary_tree(&mut g, &mut rng);
-//    aldous_broder(&mut g, &mut rng);
-//    hunt_and_kill(&mut g, &mut rng);
-    
-
     img.set_vexpand(true);
     img.set_hexpand(true);
 
-    let mut g = Grid::new(10, 10);
     let mut rng = rand::thread_rng();
     let ring_height = 20;
-    let mut g_polar = grid::CircularGrid::from_rect_grid(&g, ring_height);
+    let mut g_polar = grid::CircularGrid::new(4);
     recursive_backtracker(&mut g_polar, &mut rng);
-    // println!("{}", g);
-    // let g_copy = g_polar.clone();
-
-
     img.connect_draw(move |w, cr| {
         cr.set_line_width(1.0);
         let center_x = w.get_allocated_width() as f64 / 2.;
         let center_y = w.get_allocated_height() as f64 / 2.;
         
-        cr.arc(center_x, center_y, (ring_height * g.height) as f64, 0., 2.*PI);
-        for cell in g_polar.cells.iter() {
-            
-            let north = g_polar.north_ix(cell.row, cell.col);
-            
-            match north {
-                Some(ix)  => {
-                    if !cell.links.contains(&(g_polar.cells[ix].row, g_polar.cells[ix].col)) {
-                        cr.set_line_width(1.0);
-                        // print!("north!");
-                        cr.arc(center_x, center_y, cell.inner_r, cell.theta_cw, cell.theta_ccw);
-                        cr.stroke();
-                    } else {
-                        cr.set_line_width(0.3);
-                    }
-                    
-                }
-                _ => {}
+        cr.arc(center_x, center_y, (ring_height * g_polar.height) as f64, 0., 2.*PI);
+        cr.stroke();
+        for (i, cell) in g_polar.cells.iter().enumerate() {
+            if i == 0 {
+                continue;
             }
-
-            let east = g_polar.east_ix(cell.row, cell.col).unwrap();
-            
-            if !cell.links.contains(&(g_polar.cells[east].row, g_polar.cells[east].col)) { 
+            let inward = g_polar.inward_ix(i).unwrap();
+            let theta = 2.* PI/(cell.columns as f64);
+            let inner_r = (ring_height * cell.row) as f64;
+            let outer_r = (ring_height * (cell.row + 1)) as f64;
+            let theta_cw = theta * (cell.col as f64);
+            let theta_ccw = theta * ((cell.col + 1) as f64);
+            if !cell.links.contains(&inward) {
                 cr.set_line_width(1.0);
-                // print!(" east! ");
-                let cx = center_x + cell.inner_r * cell.theta_ccw.cos();
-                let dx = center_x + cell.outer_r * cell.theta_ccw.cos();
-                let cy = center_x + cell.inner_r * cell.theta_ccw.sin();
-                let dy = center_x + cell.outer_r * cell.theta_ccw.sin();
+                cr.arc(center_x, center_y, inner_r, theta_cw, theta_ccw);
+                cr.stroke();
+            } else {
+                cr.set_line_width(0.3);
+            }   
+
+            let east = g_polar.cw_ix(i);
+            
+            if !cell.links.contains(&east) { 
+                cr.set_line_width(1.0);
+                let cx = center_x + inner_r * theta_ccw.cos();
+                let dx = center_x + outer_r * theta_ccw.cos();
+                let cy = center_x + inner_r * theta_ccw.sin();
+                let dy = center_x + outer_r * theta_ccw.sin();
                 cr.move_to(cx, cy);
                 cr.line_to(dx, dy);
                 cr.stroke();
             } else {
                 cr.set_line_width(0.3);
             }
-            
-            // println!();
         }
         gtk::Inhibit(false)
     });
@@ -294,6 +280,7 @@ fn create_gtk_app() {
         .expect("failed to initialize GTK application");
 
     application.connect_activate(build_polar_ui);
+    // application.connect_activate(build_ui);
 
     application.run(&[]);
 }
