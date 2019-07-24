@@ -1,4 +1,4 @@
-use crate::grid::Grid;
+use crate::grid::AbstractGrid;
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter, Error};
 
@@ -33,17 +33,16 @@ impl Display for DijkstraStep {
 
 impl DijkstraStep {
     #[allow(dead_code)]
-    pub fn initial(g: &Grid, start: usize) -> DijkstraStep {
+    pub fn initial(g: &AbstractGrid, start: usize) -> DijkstraStep {
         let mut cell_weights: Vec<PathBacktrackItem> = Vec::new();
-        for _ in 0..g.cells.len() {
+        for _ in 0..g.len() {
             cell_weights.push(PathBacktrackItem {path_length : -1, parent: -1 });
         }
         cell_weights[start].path_length = 0;
         cell_weights[start].parent = start as i32;
-        let c = &g.cells[start];
 
         let mut lookup_queue = VecDeque::new();
-        for &ix in &c.links {
+        for &ix in &g.links(start) {
             lookup_queue.push_back(ix);
             cell_weights[ix].path_length = 1;
             cell_weights[ix].parent = start as i32;
@@ -53,14 +52,13 @@ impl DijkstraStep {
     }
 
     #[allow(dead_code)]
-    pub fn next_step(&self, g: &Grid) -> DijkstraStep {
+    pub fn next_step(&self, g: &AbstractGrid) -> DijkstraStep {
         let mut lookup_queue = self.lookup_queue.clone();
         let mut cell_weights = self.cell_weights.clone();
         let cur_cell = lookup_queue.pop_front().unwrap();
         let cur_weight = cell_weights[cur_cell].path_length;
 
-        let c = &g.cells[cur_cell];
-        for &ix in &c.links {
+        for &ix in &g.links(cur_cell) {
             if cell_weights[ix].parent < 0 {
                 lookup_queue.push_back(ix);
                 cell_weights[ix].path_length = cur_weight + 1;

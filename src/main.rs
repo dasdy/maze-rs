@@ -13,7 +13,7 @@ mod grid;
 mod generate;
 mod solve;
 
-use grid::{Grid};
+use grid::{Grid, AbstractGrid};
 use generate::*;
 
 
@@ -151,12 +151,12 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid,
 }
 
 #[allow(dead_code)]
-fn solve_with_longest_path(g: &Grid) -> DijkstraStep {
+fn solve_with_longest_path(g: &AbstractGrid) -> DijkstraStep {
     let start = 0;
     // solve initially from random point
-    let mut result = DijkstraStep::initial(&g, start);
+    let mut result = DijkstraStep::initial(g, start);
     while !result.lookup_queue.is_empty() {
-        result = result.next_step(&g);
+        result = result.next_step(g);
     }
 
     let mut max_length = 0;
@@ -169,9 +169,9 @@ fn solve_with_longest_path(g: &Grid) -> DijkstraStep {
     }
 
     if max_idx != 0 {
-        result = DijkstraStep::initial(&g, start);
+        result = DijkstraStep::initial(g, start);
         while !result.lookup_queue.is_empty() {
-            result = result.next_step(&g);
+            result = result.next_step(g);
         }
     }
     result
@@ -232,6 +232,7 @@ fn build_polar_ui(app: &Application) {
     let actual_ring_height = 20;
     let mut g_polar = grid::CircularGrid::new(10);
     recursive_backtracker(&mut g_polar, &mut rng);
+    // let step_state= solve_with_longest_path(&g_polar);
     img.connect_draw(move |w, cr| {
         
         let scalex = w.get_allocated_width() as f64 / (g_polar.height * actual_ring_height * 2) as f64;
