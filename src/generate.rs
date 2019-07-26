@@ -1,5 +1,6 @@
 use rand::prelude::*;
-use crate::grid::{AbstractGrid, Grid};
+use crate::grid::AbstractGrid;
+use crate::rectangle::Grid;
 use std::collections::{HashSet, VecDeque};
 
 fn random_neighbor(neighbors: &Vec<Option<usize>>, r: &mut rand::rngs::ThreadRng) -> Option<usize> {

@@ -10,10 +10,14 @@ use gtk::prelude::*;
 use gio::prelude::*;
 
 mod grid;
+mod polar;
+mod rectangle;
 mod generate;
 mod solve;
 
-use grid::{Grid, CircularGrid, AbstractGrid};
+use grid::AbstractGrid;
+use polar::CircularGrid;
+use rectangle::Grid;
 use generate::*;
 
 
@@ -366,7 +370,7 @@ fn build_polar_ui(app: &Application) {
 
     let mut rng = rand::thread_rng();
     let actual_ring_height = 20;
-    let mut g_polar = grid::CircularGrid::new(10);
+    let mut g_polar = CircularGrid::new(10);
     recursive_backtracker(&mut g_polar, &mut rng);
     let step_state= solve_with_longest_path(&g_polar);
 
