@@ -17,22 +17,22 @@ impl Cell {
 }
 
 #[derive(Clone)]
-pub struct Grid {
+pub struct RectangleGrid {
     pub width: usize,
     pub height: usize,
     pub cells: Vec<Cell>,
 }
 
-impl Grid {
+impl RectangleGrid {
     #[allow(dead_code)]
-    pub fn new(row: usize, col: usize) -> Grid {
+    pub fn new(row: usize, col: usize) -> RectangleGrid {
         let mut gridarr = Vec::new();
         for i in 0..row {
             for j in 0..col {
                 gridarr.push(Cell::new(i, j));
             }
         }
-        Grid { width: col, height: row, cells: gridarr }
+        RectangleGrid { width: col, height: row, cells: gridarr }
     }
 
     #[allow(dead_code)]
@@ -136,7 +136,7 @@ impl Grid {
     }
 }
 
-impl Display for Grid {
+impl Display for RectangleGrid {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "+")?;
         for _ in 0..self.width {
@@ -172,7 +172,7 @@ impl Display for Grid {
 }
 
 
-impl AbstractGrid for Grid {
+impl AbstractGrid for RectangleGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
         let row = self.cells[ix].row;
         let col= self.cells[ix].col;

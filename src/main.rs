@@ -17,7 +17,7 @@ mod solve;
 
 use grid::AbstractGrid;
 use polar::CircularGrid;
-use rectangle::Grid;
+use rectangle::RectangleGrid;
 use generate::*;
 
 
@@ -27,7 +27,7 @@ use crate::solve::DijkstraStep;
 use std::f64::consts::PI;
 
 #[allow(dead_code)]
-fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
+fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
 
@@ -61,7 +61,7 @@ fn draw_maze(w: &DrawingArea, cr: &Context, g: &Grid, cellsize: f64) {
 }
 
 #[allow(dead_code)]
-fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &Grid,
+fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
                  step_state: &DijkstraStep, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
@@ -189,7 +189,7 @@ fn build_ui(app: &Application) {
 
     let img = gtk::DrawingArea::new();
     vbox.add(&img);
-    let mut g = Grid::new(25, 25);
+    let mut g = RectangleGrid::new(25, 25);
     let mut rng = rand::thread_rng();
 
 //    sidewinder(&mut g, &mut rng);

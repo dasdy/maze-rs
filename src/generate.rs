@@ -1,6 +1,6 @@
 use rand::prelude::*;
 use crate::grid::AbstractGrid;
-use crate::rectangle::Grid;
+use crate::rectangle::RectangleGrid;
 use std::collections::{HashSet, VecDeque};
 
 fn random_neighbor(neighbors: &Vec<Option<usize>>, r: &mut rand::rngs::ThreadRng) -> Option<usize> {
@@ -13,7 +13,7 @@ fn random_neighbor(neighbors: &Vec<Option<usize>>, r: &mut rand::rngs::ThreadRng
 }
 
 #[allow(dead_code)]
-pub fn binary_tree(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
+pub fn binary_tree(g: &mut RectangleGrid, mut r: &mut rand::rngs::ThreadRng) {
     for i in 0..g.cells.len() {
         let c = &g.cells[i];
         if let Some(neighbor) = random_neighbor(
@@ -24,7 +24,7 @@ pub fn binary_tree(g: &mut Grid, mut r: &mut rand::rngs::ThreadRng) {
 }
 
 #[allow(dead_code)]
-pub fn sidewinder(g: &mut Grid, r: &mut rand::rngs::ThreadRng) {
+pub fn sidewinder(g: &mut RectangleGrid, r: &mut rand::rngs::ThreadRng) {
     for i in 0..g.height {
         let mut current_run = Vec::new();
         for j in 0..g.width {
