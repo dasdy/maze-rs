@@ -70,3 +70,28 @@ impl DijkstraStep {
     }
 }
 
+pub fn solve_with_longest_path<T: AbstractCell>(g: &AbstractGrid<T>) -> DijkstraStep {
+    let start = 0;
+    // solve initially from random point
+    let mut result = DijkstraStep::initial(g, start);
+    while !result.lookup_queue.is_empty() {
+        result = result.next_step(g);
+    }
+
+    let mut max_length = 0;
+    let mut max_idx = 0;
+    for (i, c) in result.cell_weights.iter().enumerate() {
+        if c.path_length > max_length {
+            max_length = c.path_length;
+            max_idx = i;
+        }
+    }
+
+    if max_idx != 0 {
+        result = DijkstraStep::initial(g, start);
+        while !result.lookup_queue.is_empty() {
+            result = result.next_step(g);
+        }
+    }
+    result
+}

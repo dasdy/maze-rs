@@ -1,6 +1,14 @@
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter, Error};
 use crate::grid::{AbstractGrid, AbstractCell, CompassDirections};
+use gtk::{Application, ApplicationWindow, DrawingArea};
+use cairo::Context;
+use crate::solve::DijkstraStep;
+use crate::solve::solve_with_longest_path;
+use crate::generate::recursive_backtracker;
+use std::f64::consts::PI;
+
+use gtk::prelude::*;
 
 #[derive(Clone)]
 pub struct Cell {
@@ -225,4 +233,172 @@ impl AbstractGrid<Cell> for RectangleGrid {
     fn cell(&self, ix: usize) -> &Cell {
         &self.cells[ix]
     }
+}
+
+
+#[allow(dead_code)]
+pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64) {
+    let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
+    let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
+
+
+    cr.scale(scalex, scaley);
+    cr.set_line_width(1.0);
+    for ix in 0..g.len() {
+        let cur_cell = g.cell(ix);
+        let draw_line =
+            |item: &Option<usize>, end: (f64, f64)| {
+                match item {
+                    Some(r_idx) if !cur_cell.links().contains(r_idx) =>
+                        cr.line_to(end.0, end.1),
+                    _ => cr.move_to(end.0, end.1)
+                }
+            };
+        let pixcoord = |ix: usize| -> f64 {
+            ix as f64 * cellsize
+        };
+        let x1 = pixcoord(cur_cell.col());
+        let x2 = pixcoord(cur_cell.col() + 1);
+        let y1 = pixcoord(cur_cell.row());
+        let y2 = pixcoord(cur_cell.row() + 1);
+        cr.move_to(x1, y1);
+        draw_line(&g.west_ix(ix), (x1, y2));
+        draw_line(&g.south_ix(ix), (x2, y2));
+        draw_line(&g.east_ix(ix), (x2, y1));
+        draw_line(&g.north_ix(ix), (x1, y1));
+        cr.stroke();
+    }
+}
+
+#[allow(dead_code)]
+pub fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
+                 step_state: &DijkstraStep, cellsize: f64) {
+    let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
+    let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
+    cr.scale(scalex, scaley);
+    cr.set_line_width(1.0);
+
+    let pixcoord = |ix: usize| -> f64 {
+        (ix as f64 + 0.5) * cellsize
+    };
+
+    let circle = |x: f64, y: f64| {
+        cr.save();
+        cr.translate(x, y);
+        cr.arc(0.,0.,cellsize / 2.,0., 2. * PI);
+        cr.restore();
+    };
+
+    let coords = |ix: i32| {
+        let row = g.cell(ix as usize).row();
+        let col = g.cell(ix as usize).col();
+        (pixcoord(col), pixcoord(row))
+    };
+
+    let line = |i1: i32, i2: i32| {
+        let (x1, y1) = coords(i1);
+        let (x2, y2) = coords(i2);
+
+        cr.move_to(x1, y1);
+        cr.line_to(x2, y2);
+        cr.stroke();
+    };
+
+    let rect = |i: usize| {
+        let row = g.cell(i).row() as f64;
+        let col = g.cell(i).col() as f64;
+        let (x1, y1) = (col * cellsize, row * cellsize);
+        cr.rectangle(x1, y1, cellsize, cellsize);
+        cr.fill();
+    };
+
+    let mut max_idx = 0;
+    let mut min_idx = 0;
+    let mut max_length = step_state.cell_weights[max_idx].path_length;
+    let mut min_length = max_length;
+    for (i, c) in step_state.cell_weights.iter().enumerate() {
+        if c.path_length > max_length {
+            max_length = c.path_length;
+            max_idx = i;
+        }
+        if c.path_length < min_length {
+            min_length = c.path_length;
+            min_idx = i;
+        }
+    }
+
+
+    let cur_cell = g.cell(min_idx);
+    let end_cell = g.cell(max_idx);
+
+
+    cr.set_line_width(6.0);
+    for (i, c) in step_state.cell_weights.iter().enumerate() {
+        let intensity= (max_length - c.path_length) as f64 / max_length as f64;
+        let dark = intensity;
+        let bright = 0.5 + intensity / 2.;
+        cr.set_source_rgb(dark, bright, dark);
+        rect(i);
+    }
+
+
+    let x1 = pixcoord(cur_cell.col());
+    let x2 = pixcoord(end_cell.col());
+
+    let y1 = pixcoord(cur_cell.row());
+    let y2 = pixcoord(end_cell.row());
+    cr.set_line_width(1.0);
+    cr.set_source_rgb(0.,0.,0.);
+    circle(x1,y1);
+    cr.stroke();
+    circle(x2,y2);
+    cr.stroke();
+    if step_state.cell_weights[max_idx].parent >= 0 {
+        let mut cur_cell = max_idx as i32;
+        cr.set_source_rgb(1., 0., 0.);
+        cr.set_line_width(4.0);
+        while cur_cell != (min_idx as i32) {
+            line(cur_cell, step_state.cell_weights[cur_cell as usize].parent);
+            cur_cell = step_state.cell_weights[cur_cell as usize].parent;
+        }
+    }
+}
+
+#[allow(dead_code)]
+fn build_ui(app: &Application) {
+    let window = ApplicationWindow::new(app);
+    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    window.set_default_size(400, 400);
+
+    let img = gtk::DrawingArea::new();
+    vbox.add(&img);
+    let mut g = RectangleGrid::new(25, 25);
+    let mut rng = rand::thread_rng();
+
+//    sidewinder(&mut g, &mut rng);
+//    binary_tree(&mut g, &mut rng);
+//    aldous_broder(&mut g, &mut rng);
+//    hunt_and_kill(&mut g, &mut rng);
+    recursive_backtracker(&mut g, &mut rng);
+
+    img.set_vexpand(true);
+    img.set_hexpand(true);
+    let g_copy = g.clone();
+    let cellsize = 10.;
+
+
+    let step_state= solve_with_longest_path(&g);
+
+    img.connect_draw(move |w, cr| {
+        draw_pathfind(w, cr, &g, &step_state, cellsize);
+        gtk::Inhibit(false)
+    });
+
+    img.connect_draw(move |w, cr| {
+        draw_maze(w, cr, &g_copy, cellsize);
+        gtk::Inhibit(false)
+    });
+
+    window.add(&vbox);
+    window.show_all();
 }
