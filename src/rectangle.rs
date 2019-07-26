@@ -1,12 +1,30 @@
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter, Error};
-use crate::grid::AbstractGrid;
+use crate::grid::{AbstractGrid, AbstractCell, CompassDirections};
 
 #[derive(Clone)]
 pub struct Cell {
     pub row: usize,
     pub col: usize,
     pub links: HashSet<usize>,
+}
+
+impl AbstractCell for Cell {
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn col(&self) -> usize {
+        self.col
+    }
+
+    fn links(&self) -> HashSet<usize> {
+        self.links.iter().cloned().collect()
+    }
+
+    fn link(&mut self, ix: usize) {
+        self.links.insert(ix);
+    }
 }
 
 #[allow(dead_code)]
@@ -21,6 +39,32 @@ pub struct RectangleGrid {
     pub width: usize,
     pub height: usize,
     pub cells: Vec<Cell>,
+}
+
+impl CompassDirections for RectangleGrid {
+    fn north_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+        return self._ix_opt(row.wrapping_sub(1), col);
+    }
+
+    fn east_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+        return self._ix_opt(row, col.wrapping_add(1));
+    }
+
+    fn west_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+        return self._ix_opt(row, col.wrapping_sub(1));
+    }
+
+    fn south_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+        return self._ix_opt(row.wrapping_add(1), col);
+    }
 }
 
 impl RectangleGrid {
@@ -49,22 +93,6 @@ impl RectangleGrid {
             return None;
         }
         return Some(self._ix(row, col));
-    }
-
-    pub fn north_ix(&self, row: usize, col: usize) -> Option<usize> {
-        return self._ix_opt(row.wrapping_sub(1), col);
-    }
-
-    pub fn east_ix(&self, row: usize, col: usize) -> Option<usize> {
-        return self._ix_opt(row, col.wrapping_add(1));
-    }
-
-    pub fn west_ix(&self, row: usize, col: usize) -> Option<usize> {
-        return self._ix_opt(row, col.wrapping_sub(1));
-    }
-
-    pub fn south_ix(&self, row: usize, col: usize) -> Option<usize> {
-        return self._ix_opt(row.wrapping_add(1), col);
     }
 
     pub fn link(&mut self, ix1: usize, ix2: usize) {
@@ -105,10 +133,10 @@ impl RectangleGrid {
             let x2 = asf32(cur_cell.col + 1, cellsize);
             let y1 = asf32(cur_cell.row, cellsize);
             let y2 = asf32(cur_cell.row + 1, cellsize);
-            draw_line(&self.east_ix(cur_cell.row, cur_cell.col), (x2, y1), (x2, y2));
-            draw_line(&self.south_ix(cur_cell.row, cur_cell.col), (x1, y2), (x2, y2));
-            draw_line(&self.west_ix(cur_cell.row, cur_cell.col), (x1, y1), (x1, y2));
-            draw_line(&self.north_ix(cur_cell.row, cur_cell.col), (x1, y1), (x2, y1));
+            draw_line(&self.east_ix(ix), (x2, y1), (x2, y2));
+            draw_line(&self.south_ix(ix), (x1, y2), (x2, y2));
+            draw_line(&self.west_ix(ix), (x1, y1), (x1, y2));
+            draw_line(&self.north_ix(ix), (x1, y1), (x2, y1));
         }
 
         return imgbuf;
@@ -156,8 +184,8 @@ impl Display for RectangleGrid {
                             _ => bound.to_string()
                         }
                     };
-                let east_bound = f(self.east_ix(i, j), " ", "|");
-                let south_bound = f(self.south_ix(i, j), "   ", "---");
+                let east_bound = f(self.east_ix(self._ix(i, j)), " ", "|");
+                let south_bound = f(self.south_ix(self._ix(i, j)), "   ", "---");
 
                 top.push_str(body);
                 top.push_str(&east_bound);
@@ -172,12 +200,10 @@ impl Display for RectangleGrid {
 }
 
 
-impl AbstractGrid for RectangleGrid {
+impl AbstractGrid<Cell> for RectangleGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
-        let row = self.cells[ix].row;
-        let col= self.cells[ix].col;
-        let neighbors = &vec![self.north_ix(row, col), self.east_ix(row,col),
-                    self.west_ix(row, col), self.south_ix(row, col)];
+        let neighbors = &vec![self.north_ix(ix), self.east_ix(ix),
+                    self.west_ix(ix), self.south_ix(ix)];
 
         let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
         neighbors
@@ -194,5 +220,9 @@ impl AbstractGrid for RectangleGrid {
     fn link(&mut self, ix1: usize, ix2: usize) {
         &(self.cells[ix1].links).insert(ix2);
         &(self.cells[ix2].links).insert(ix1);
+    }
+
+    fn cell(&self, ix: usize) -> &Cell {
+        &self.cells[ix]
     }
 }

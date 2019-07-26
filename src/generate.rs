@@ -1,5 +1,5 @@
 use rand::prelude::*;
-use crate::grid::AbstractGrid;
+use crate::grid::{AbstractGrid, AbstractCell, CompassDirections, CompassGrid};
 use crate::rectangle::RectangleGrid;
 use std::collections::{HashSet, VecDeque};
 
@@ -13,11 +13,10 @@ fn random_neighbor(neighbors: &Vec<Option<usize>>, r: &mut rand::rngs::ThreadRng
 }
 
 #[allow(dead_code)]
-pub fn binary_tree(g: &mut RectangleGrid, mut r: &mut rand::rngs::ThreadRng) {
-    for i in 0..g.cells.len() {
-        let c = &g.cells[i];
+pub fn binary_tree<U: AbstractCell>(g: &mut CompassGrid<U>, mut r: &mut rand::rngs::ThreadRng) {
+    for i in 0..g.len() {
         if let Some(neighbor) = random_neighbor(
-            &vec![g.north_ix(c.row, c.col), g.east_ix(c.row, c.col)], &mut r) {
+            &vec![g.north_ix(i), g.east_ix(i)], &mut r) {
             g.link(i, neighbor)
         }
     }
@@ -35,15 +34,14 @@ pub fn sidewinder(g: &mut RectangleGrid, r: &mut rand::rngs::ThreadRng) {
             if should_close_out {
                 let (r_i, r_j) = current_run[
                     r.gen_range(0, current_run.len())];
-                let oix1 = g.north_ix(r_i, r_j);
                 let ix2 = g._ix(r_i, r_j);
                 current_run.clear();
-                if let Some(ix1) = oix1 {
+                if let Some(ix1) = g.north_ix(ix2) {
                     g.link(ix1, ix2)
                 }
             } else {
                 let ix1 = g._ix(i, j);
-                let ix2 = g.east_ix(i, j).unwrap();
+                let ix2 = g.east_ix(ix1).unwrap();
                 g.link(ix1, ix2);
             }
         }
@@ -51,7 +49,7 @@ pub fn sidewinder(g: &mut RectangleGrid, r: &mut rand::rngs::ThreadRng) {
 }
 
 #[allow(dead_code)]
-pub fn aldous_broder(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
+pub fn aldous_broder<T: AbstractCell>(g: &mut AbstractGrid<T>, r: &mut rand::rngs::ThreadRng) {
     let mut visited = HashSet::new();
     let target_size = g.len();
     let mut current_cell = r.gen_range(0, g.len());
@@ -72,18 +70,18 @@ pub fn aldous_broder(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
 
 }
 
-fn unvisited_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
+fn unvisited_neighbors<T: AbstractCell>(g: &AbstractGrid<T>, cell_idx: usize) -> Vec<usize> {
     g.neighbours(cell_idx).iter().map(|x| *x)
         .filter(|x| g.links(*x).len() == 0).collect()
 }
 
-fn visited_neighbors(g: &AbstractGrid, cell_idx: usize) -> Vec<usize> {
+fn visited_neighbors<T: AbstractCell>(g: &AbstractGrid<T>, cell_idx: usize) -> Vec<usize> {
     g.neighbours(cell_idx).iter().map(|x| *x)
         .filter(|x| g.links(*x).len() != 0).collect()
 }
 
 #[allow(dead_code)]
-pub fn hunt_and_kill(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
+pub fn hunt_and_kill<T: AbstractCell>(g: &mut AbstractGrid<T>, r: &mut rand::rngs::ThreadRng) {
     let mut current_idx = Some(r.gen_range(0, g.len()));
     while current_idx.is_some() {
         let cell_neighbors =
@@ -108,7 +106,7 @@ pub fn hunt_and_kill(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
 }
 
 #[allow(dead_code)]
-pub fn recursive_backtracker(g: &mut AbstractGrid, r: &mut rand::rngs::ThreadRng) {
+pub fn recursive_backtracker<T: AbstractCell>(g: &mut AbstractGrid<T>, r: &mut rand::rngs::ThreadRng) {
     let current_idx = r.gen_range(0, g.len());
     let mut cell_stack = VecDeque::new();
     cell_stack.push_back(current_idx);

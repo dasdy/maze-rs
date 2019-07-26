@@ -15,7 +15,7 @@ mod rectangle;
 mod generate;
 mod solve;
 
-use grid::AbstractGrid;
+use grid::{AbstractGrid, AbstractCell, CompassDirections};
 use polar::CircularGrid;
 use rectangle::RectangleGrid;
 use generate::*;
@@ -34,12 +34,12 @@ fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64) {
 
     cr.scale(scalex, scaley);
     cr.set_line_width(1.0);
-    for ix in 0..g.cells.len() {
-        let cur_cell = &g.cells[ix];
+    for ix in 0..g.len() {
+        let cur_cell = g.cell(ix);
         let draw_line =
             |item: &Option<usize>, end: (f64, f64)| {
                 match item {
-                    Some(r_idx) if !cur_cell.links.contains(r_idx) =>
+                    Some(r_idx) if !cur_cell.links().contains(r_idx) =>
                         cr.line_to(end.0, end.1),
                     _ => cr.move_to(end.0, end.1)
                 }
@@ -47,15 +47,15 @@ fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64) {
         let pixcoord = |ix: usize| -> f64 {
             ix as f64 * cellsize
         };
-        let x1 = pixcoord(cur_cell.col);
-        let x2 = pixcoord(cur_cell.col + 1);
-        let y1 = pixcoord(cur_cell.row);
-        let y2 = pixcoord(cur_cell.row + 1);
+        let x1 = pixcoord(cur_cell.col());
+        let x2 = pixcoord(cur_cell.col() + 1);
+        let y1 = pixcoord(cur_cell.row());
+        let y2 = pixcoord(cur_cell.row() + 1);
         cr.move_to(x1, y1);
-        draw_line(&g.west_ix(cur_cell.row, cur_cell.col), (x1, y2));
-        draw_line(&g.south_ix(cur_cell.row, cur_cell.col), (x2, y2));
-        draw_line(&g.east_ix(cur_cell.row, cur_cell.col), (x2, y1));
-        draw_line(&g.north_ix(cur_cell.row, cur_cell.col), (x1, y1));
+        draw_line(&g.west_ix(ix), (x1, y2));
+        draw_line(&g.south_ix(ix), (x2, y2));
+        draw_line(&g.east_ix(ix), (x2, y1));
+        draw_line(&g.north_ix(ix), (x1, y1));
         cr.stroke();
     }
 }
@@ -80,8 +80,8 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
     };
 
     let coords = |ix: i32| {
-        let row = g.cells[ix as usize].row;
-        let col = g.cells[ix as usize].col;
+        let row = g.cell(ix as usize).row();
+        let col = g.cell(ix as usize).col();
         (pixcoord(col), pixcoord(row))
     };
 
@@ -95,8 +95,8 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
     };
 
     let rect = |i: usize| {
-        let row = g.cells[i].row as f64;
-        let col = g.cells[i].col as f64;
+        let row = g.cell(i).row() as f64;
+        let col = g.cell(i).col() as f64;
         let (x1, y1) = (col * cellsize, row * cellsize);
         cr.rectangle(x1, y1, cellsize, cellsize);
         cr.fill();
@@ -118,8 +118,8 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
     }
 
 
-    let cur_cell = &g.cells[min_idx];
-    let end_cell = &g.cells[max_idx];
+    let cur_cell = g.cell(min_idx);
+    let end_cell = g.cell(max_idx);
 
 
     cr.set_line_width(6.0);
@@ -132,11 +132,11 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
     }
 
 
-    let x1 = pixcoord(cur_cell.col);
-    let x2 = pixcoord(end_cell.col);
+    let x1 = pixcoord(cur_cell.col());
+    let x2 = pixcoord(end_cell.col());
 
-    let y1 = pixcoord(cur_cell.row);
-    let y2 = pixcoord(end_cell.row);
+    let y1 = pixcoord(cur_cell.row());
+    let y2 = pixcoord(end_cell.row());
     cr.set_line_width(1.0);
     cr.set_source_rgb(0.,0.,0.);
     circle(x1,y1);
@@ -155,7 +155,7 @@ fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
 }
 
 #[allow(dead_code)]
-fn solve_with_longest_path(g: &AbstractGrid) -> DijkstraStep {
+fn solve_with_longest_path<T: AbstractCell>(g: &AbstractGrid<T>) -> DijkstraStep {
     let start = 0;
     // solve initially from random point
     let mut result = DijkstraStep::initial(g, start);
@@ -232,17 +232,18 @@ fn draw_polar_maze(w: &DrawingArea, cr: &Context, g_polar: &CircularGrid, actual
     
     cr.arc(center_x, center_y, ring_height * g_polar.height as f64, 0., 2.*PI);
     cr.stroke();
-    for (i, cell) in g_polar.cells.iter().enumerate() {
+    for i in 0..g_polar.len(){
         if i == 0 {
             continue;
         }
+        let cell = g_polar.cell(i);
         let inward = g_polar.inward_ix(i).unwrap();
         let theta = 2.* PI/(cell.columns as f64);
-        let inner_r = ring_height * cell.row as f64;
-        let outer_r = ring_height * (cell.row + 1) as f64;
-        let theta_cw = theta * (cell.col as f64);
-        let theta_ccw = theta * ((cell.col + 1) as f64);
-        if !cell.links.contains(&inward) {
+        let inner_r = ring_height * cell.row() as f64;
+        let outer_r = ring_height * (cell.row() + 1) as f64;
+        let theta_cw = theta * (cell.col() as f64);
+        let theta_ccw = theta * ((cell.col() + 1) as f64);
+        if !cell.links().contains(&inward) {
             cr.arc(center_x, center_y, inner_r, theta_cw, theta_ccw);
             cr.stroke();
         }
@@ -288,9 +289,9 @@ fn draw_polar_pathfind(w: &DrawingArea, cr: &Context, g: &CircularGrid, step_sta
 
     // returns inner radius, theta1, theta2
     let pixcoord = |ix: usize| -> (f64, f64, f64) {
-        let row = g.cells[ix].row as f64;
-        let col = g.cells[ix].col as f64;
-        let total_cols = g.cells[ix].columns as f64;
+        let row = g.cell(ix).row() as f64;
+        let col = g.cell(ix).col() as f64;
+        let total_cols = g.cell(ix).columns as f64;
         let theta = 2.* PI/total_cols;
         let inner_r = (cellsize as f64) * (row + 0.5);
 
@@ -309,14 +310,14 @@ fn draw_polar_pathfind(w: &DrawingArea, cr: &Context, g: &CircularGrid, step_sta
     }
 
     let connect = |ix1: usize, ix2: usize| {
-        let r1 = g.cells[ix1].row;
-        let r2 = g.cells[ix2].row;
-        let theta = 2.* PI/(g.cells[ix1].columns as f64);
+        let r1 = g.cell(ix1).row();
+        let r2 = g.cell(ix2).row();
+        let theta = 2.* PI/(g.cell(ix1).columns as f64);
         
         if r1 == r2 {
-            let col1 = g.cells[ix1].col;
-            let col2 = g.cells[ix2].col;
-            let total = g.cells[ix1].columns;
+            let col1 = g.cell(ix1).col;
+            let col2 = g.cell(ix2).col;
+            let total = g.cell(ix1).columns;
 
             let a1 = theta * (0.5 + col1 as f64);
             let a2 = theta * (0.5 + col2 as f64);
@@ -332,9 +333,9 @@ fn draw_polar_pathfind(w: &DrawingArea, cr: &Context, g: &CircularGrid, step_sta
         } else {
             let start_r = (0.5 + r1 as f64) * (cellsize as f64);
             let end_r = (0.5 + r2 as f64) * (cellsize as f64);
-            let theta2 = 2.* PI/(g.cells[ix2].columns as f64);
-            let a = theta * (0.5 + g.cells[ix1].col as f64);
-            let a2 = theta2 * (0.5 + g.cells[ix2].col as f64);
+            let theta2 = 2.* PI/(g.cell(ix2).columns as f64);
+            let a = theta * (0.5 + g.cell(ix1).col as f64);
+            let a2 = theta2 * (0.5 + g.cell(ix2).col as f64);
             let cx = center_x + start_r * a.cos();
             let dx = center_x + end_r * a2.cos();
             let cy = center_x + start_r * a.sin();

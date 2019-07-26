@@ -1,5 +1,5 @@
 use std::f64::consts::PI;
-use crate::grid::AbstractGrid;
+use crate::grid::{AbstractGrid, AbstractCell};
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter, Error};
 
@@ -13,6 +13,24 @@ pub struct PolarCell {
     pub col: usize,
     pub columns: usize,
     pub links: HashSet<usize>
+}
+
+impl AbstractCell for PolarCell {
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn col(&self) -> usize {
+        self.col
+    }
+
+    fn links(&self) -> HashSet<usize> {
+        self.links.iter().cloned().collect()
+    }
+
+    fn link(&mut self, ix: usize) {
+        self.links.insert(ix);
+    }
 }
 
 impl Display for PolarCell {
@@ -48,7 +66,7 @@ pub struct CircularGrid {
     pub cells: Vec<PolarCell>
 }
 
-impl AbstractGrid for CircularGrid {
+impl AbstractGrid<PolarCell> for CircularGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
         let cell = &self.cells[ix];
         let mut neighbours = cell.outward.clone();
@@ -70,6 +88,10 @@ impl AbstractGrid for CircularGrid {
     fn link(&mut self, ix1: usize, ix2: usize) {
         &(self.cells[ix1].links).insert(ix2);
         &(self.cells[ix2].links).insert(ix1);
+    }
+
+    fn cell(&self, ix: usize) -> &PolarCell {
+        &self.cells[ix]
     }
 }
 
