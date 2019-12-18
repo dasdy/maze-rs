@@ -27,13 +27,13 @@ impl Display for DijkstraStep {
                 writeln!(f, "{:?}", i)?;
             }
         }
-        writeln!(f, "")
+        writeln!(f)
     }
 }
 
 impl DijkstraStep {
     #[allow(dead_code)]
-    pub fn initial<T: AbstractCell>(g: &AbstractGrid<T>, start: usize) -> DijkstraStep {
+    pub fn initial<T: AbstractCell>(g: &dyn AbstractGrid<T>, start: usize) -> DijkstraStep {
         let mut cell_weights: Vec<PathBacktrackItem> = Vec::new();
         for _ in 0..g.len() {
             cell_weights.push(PathBacktrackItem {path_length : -1, parent: -1 });
@@ -52,7 +52,7 @@ impl DijkstraStep {
     }
 
     #[allow(dead_code)]
-    pub fn next_step<T: AbstractCell>(&self, g: &AbstractGrid<T>) -> DijkstraStep {
+    pub fn next_step<T: AbstractCell>(&self, g: &dyn AbstractGrid<T>) -> DijkstraStep {
         let mut lookup_queue = self.lookup_queue.clone();
         let mut cell_weights = self.cell_weights.clone();
         let cur_cell = lookup_queue.pop_front().unwrap();
@@ -70,7 +70,7 @@ impl DijkstraStep {
     }
 }
 
-pub fn solve_with_longest_path<T: AbstractCell>(g: &AbstractGrid<T>) -> DijkstraStep {
+pub fn solve_with_longest_path<T: AbstractCell>(g: &dyn AbstractGrid<T>) -> DijkstraStep {
     let start = 0;
     // solve initially from random point
     let mut result = DijkstraStep::initial(g, start);

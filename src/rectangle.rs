@@ -53,25 +53,25 @@ impl CompassDirections for RectangleGrid {
     fn north_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        return self._ix_opt(row.wrapping_sub(1), col);
+        self._ix_opt(row.wrapping_sub(1), col)
     }
 
     fn east_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        return self._ix_opt(row, col.wrapping_add(1));
+        self._ix_opt(row, col.wrapping_add(1))
     }
 
     fn west_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        return self._ix_opt(row, col.wrapping_sub(1));
+        self._ix_opt(row, col.wrapping_sub(1))
     }
 
     fn south_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        return self._ix_opt(row.wrapping_add(1), col);
+        self._ix_opt(row.wrapping_add(1), col)
     }
 }
 
@@ -100,12 +100,12 @@ impl RectangleGrid {
         if row >= self.height || col >= self.width {
             return None;
         }
-        return Some(self._ix(row, col));
+        Some(self._ix(row, col))
     }
 
     pub fn link(&mut self, ix1: usize, ix2: usize) {
-        &(self.cells[ix1].links).insert(ix2);
-        &(self.cells[ix2].links).insert(ix1);
+        (self.cells[ix1].links).insert(ix2);
+        (self.cells[ix2].links).insert(ix1);
     }
 
     #[allow(dead_code)]
@@ -147,7 +147,7 @@ impl RectangleGrid {
             draw_line(&self.north_ix(ix), (x1, y1), (x2, y1));
         }
 
-        return imgbuf;
+        imgbuf
     }
 
     #[allow(dead_code)]
@@ -168,7 +168,7 @@ impl RectangleGrid {
         }
 
         res.push_str("\n}\n");
-        return res;
+        res
     }
 }
 
@@ -226,8 +226,8 @@ impl AbstractGrid<Cell> for RectangleGrid {
     }
 
     fn link(&mut self, ix1: usize, ix2: usize) {
-        &(self.cells[ix1].links).insert(ix2);
-        &(self.cells[ix2].links).insert(ix1);
+        (self.cells[ix1].links).insert(ix2);
+        (self.cells[ix2].links).insert(ix1);
     }
 
     fn cell(&self, ix: usize) -> &Cell {

@@ -45,7 +45,7 @@ impl Display for PolarCell {
         write!(f, "PolarCell(row:{}, col: {}, columns: {}, cw: {}, ccw: {}, inward: {}, outward: [",
         self.row, self.col, self.columns, self.clockwise, self.counter_clockwise, match self.inward {
             Some(ix) => format!("{}", ix),
-            _ => format!("None")
+            _ => "None".to_string()
         })?;
         for o in &self.outward {
             write!(f, "{}, ", o)?;
@@ -55,7 +55,7 @@ impl Display for PolarCell {
             write!(f, "{}, ", o)?;
         }
         write!(f, "])")?;
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -63,7 +63,7 @@ impl PolarCell {
     pub fn new(row: usize, col: usize, clockwise: usize, counter_clockwise: usize,
                columns: usize, outward: Vec<usize>) -> PolarCell {
         let links = HashSet::new();
-        PolarCell {inward: None, clockwise, counter_clockwise, outward: outward.clone(), links, col, row, columns}
+        PolarCell {inward: None, clockwise, counter_clockwise, outward, links, col, row, columns}
     }
 }
 
@@ -77,10 +77,7 @@ impl AbstractGrid<PolarCell> for CircularGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
         let cell = &self.cells[ix];
         let mut neighbours = cell.outward.clone();
-        match cell.inward {
-            Some(ix) =>  neighbours.push(ix),
-            None => {}
-        };
+        if let Some(ix) = cell.inward { neighbours.push(ix) };
         neighbours.push(cell.counter_clockwise);
         neighbours.push(cell.clockwise);
         neighbours
@@ -93,8 +90,8 @@ impl AbstractGrid<PolarCell> for CircularGrid {
     }
 
     fn link(&mut self, ix1: usize, ix2: usize) {
-        &(self.cells[ix1].links).insert(ix2);
-        &(self.cells[ix2].links).insert(ix1);
+        (self.cells[ix1].links).insert(ix2);
+        (self.cells[ix2].links).insert(ix1);
     }
 
     fn cell(&self, ix: usize) -> &PolarCell {
@@ -123,7 +120,7 @@ impl CircularGrid {
             for j in 0..cell_count {
                 let current_cell_id = cells.len();
                 let ccw = if j == 0 {current_cell_id + cell_count - 1} else {current_cell_id - 1};
-                let cw = if j == cell_count - 1 {cells_in_row[0] } else {current_cell_id + 1};;
+                let cw = if j == cell_count - 1 {cells_in_row[0] } else {current_cell_id + 1};
                 cells.push(PolarCell::new(i, j, cw, ccw, cell_count, Vec::new()));
                 cells_in_row.push(current_cell_id);
             }
@@ -146,7 +143,7 @@ impl CircularGrid {
 
     #[allow(dead_code)]
     pub fn outward_ixs(&self, ix: usize) -> Vec<usize> {
-        return self.cells[ix].outward.clone();
+        self.cells[ix].outward.clone()
     }
 
     pub fn cw_ix(&self, ix: usize) -> usize {
@@ -184,7 +181,7 @@ impl CircularGrid {
             }
         }
         res.push_str("\n}\n");
-        return res;
+        res
     }
 }
 
