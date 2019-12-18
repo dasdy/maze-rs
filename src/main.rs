@@ -21,7 +21,7 @@ use polar::build_polar_ui;
 
 
 fn create_gtk_app() {
-    let application = Application::new("com.dasdy.mazes", Default::default())
+    let application = Application::new(Some("com.dasdy.mazes"), Default::default())
         .expect("failed to initialize GTK application");
 
     application.connect_activate(build_polar_ui);
