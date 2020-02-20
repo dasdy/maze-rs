@@ -1,7 +1,6 @@
-use crate::grid::{AbstractGrid, AbstractCell};
+use crate::grid::{AbstractCell, AbstractGrid};
 use std::collections::VecDeque;
-use std::fmt::{Display, Formatter, Error};
-
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(Clone, Debug)]
 pub struct PathBacktrackItem {
@@ -12,7 +11,7 @@ pub struct PathBacktrackItem {
 #[derive(Clone)]
 pub struct DijkstraStep {
     pub cell_weights: Vec<PathBacktrackItem>,
-    pub lookup_queue: VecDeque<usize>
+    pub lookup_queue: VecDeque<usize>,
 }
 
 impl Display for DijkstraStep {
@@ -36,7 +35,10 @@ impl DijkstraStep {
     pub fn initial<T: AbstractCell>(g: &dyn AbstractGrid<T>, start: usize) -> DijkstraStep {
         let mut cell_weights: Vec<PathBacktrackItem> = Vec::new();
         for _ in 0..g.len() {
-            cell_weights.push(PathBacktrackItem {path_length : -1, parent: -1 });
+            cell_weights.push(PathBacktrackItem {
+                path_length: -1,
+                parent: -1,
+            });
         }
         cell_weights[start].path_length = 0;
         cell_weights[start].parent = start as i32;
@@ -48,7 +50,10 @@ impl DijkstraStep {
             cell_weights[ix].parent = start as i32;
         }
 
-        DijkstraStep {cell_weights, lookup_queue}
+        DijkstraStep {
+            cell_weights,
+            lookup_queue,
+        }
     }
 
     #[allow(dead_code)]
@@ -66,7 +71,10 @@ impl DijkstraStep {
             }
         }
 
-        DijkstraStep {lookup_queue, cell_weights}
+        DijkstraStep {
+            lookup_queue,
+            cell_weights,
+        }
     }
 }
 

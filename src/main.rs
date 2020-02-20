@@ -1,31 +1,27 @@
 extern crate image;
-extern crate num_complex;
 extern crate imageproc;
+extern crate num_complex;
 
-extern crate gtk;
-extern crate gio;
 extern crate gdk_pixbuf;
+extern crate gio;
+extern crate gtk;
 
 use gio::prelude::*;
 
+mod generate;
 mod grid;
 mod polar;
 mod rectangle;
-mod generate;
 mod solve;
 
-
-use gtk::{Application};
-
-use polar::build_polar_ui;
-
+use gtk::Application;
 
 fn create_gtk_app() {
     let application = Application::new(Some("com.dasdy.mazes"), Default::default())
         .expect("failed to initialize GTK application");
 
-    application.connect_activate(build_polar_ui);
-    // application.connect_activate(build_ui);
+    application.connect_activate(polar::build_polar_ui);
+    // application.connect_activate(rectangle::build_ui);
 
     application.run(&[]);
 }

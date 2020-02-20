@@ -1,12 +1,12 @@
-use std::collections::HashSet;
-use std::fmt::{Display, Formatter, Error};
-use crate::grid::{AbstractGrid, AbstractCell, CompassDirections};
-use gtk::{Application, ApplicationWindow, DrawingArea};
-use cairo::Context;
-use crate::solve::DijkstraStep;
-use crate::solve::solve_with_longest_path;
 use crate::generate::recursive_backtracker;
+use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
+use crate::solve::solve_with_longest_path;
+use crate::solve::DijkstraStep;
+use cairo::Context;
+use gtk::{Application, ApplicationWindow, DrawingArea};
+use std::collections::HashSet;
 use std::f64::consts::PI;
+use std::fmt::{Display, Error, Formatter};
 
 use gtk::prelude::*;
 
@@ -38,7 +38,11 @@ impl AbstractCell for Cell {
 #[allow(dead_code)]
 impl Cell {
     pub fn new(row: usize, col: usize) -> Cell {
-        Cell { row, col, links: HashSet::new() }
+        Cell {
+            row,
+            col,
+            links: HashSet::new(),
+        }
     }
 }
 
@@ -84,7 +88,11 @@ impl RectangleGrid {
                 gridarr.push(Cell::new(i, j));
             }
         }
-        RectangleGrid { width: col, height: row, cells: gridarr }
+        RectangleGrid {
+            width: col,
+            height: row,
+            cells: gridarr,
+        }
     }
 
     #[allow(dead_code)]
@@ -113,7 +121,7 @@ impl RectangleGrid {
         let imwidth = (self.width * cellsize + 1) as u32;
         let imheigh = (self.height * cellsize + 1) as u32;
         // Create a new ImgBuf with width: imgx and height: imgy
-        let mut imgbuf = image::ImageBuffer::new(imwidth, imheigh);
+        let mut imgbuf = image::RgbImage::new(imwidth, imheigh);
         for (_, _, p) in imgbuf.enumerate_pixels_mut() {
             *p = image::Rgb([255, 255, 255])
         }
@@ -122,20 +130,21 @@ impl RectangleGrid {
         for ix in 0..self.cells.len() {
             let cur_cell = &self.cells[ix];
 
-            let mut draw_line =
-                |item: &Option<usize>, start: (f32, f32), end: (f32, f32)| {
-                    if let Some(r_idx) = item {
-                        if cur_cell.links.contains(&r_idx) {
-                            imageproc::drawing::draw_line_segment_mut(
-                                &mut imgbuf, start, end, pixel_color,
-                            );
-                        }
+            let mut draw_line = |item: &Option<usize>, start: (f32, f32), end: (f32, f32)| {
+                if let Some(r_idx) = item {
+                    if cur_cell.links.contains(&r_idx) {
+                        imageproc::drawing::draw_line_segment_mut(
+                            &mut imgbuf,
+                            start,
+                            end,
+                            pixel_color,
+                        );
                     }
-                };
+                }
+            };
             fn asf32(ix: usize, size: usize) -> f32 {
                 (ix * size) as f32
             }
-
 
             let x1 = asf32(cur_cell.col, cellsize);
             let x2 = asf32(cur_cell.col + 1, cellsize);
@@ -161,8 +170,8 @@ impl RectangleGrid {
                 // print only south and east neighbours to avoid duplicates
                 if row >= c.row && col >= c.col {
                     res.push_str(
-                        format!("\"({},{})\" -- \"({},{})\" \n", c.row, c.col, col, row
-                        ).as_str());
+                        format!("\"({},{})\" -- \"({},{})\" \n", c.row, c.col, col, row).as_str(),
+                    );
                 }
             }
         }
@@ -185,13 +194,12 @@ impl Display for RectangleGrid {
             for j in 0..self.width {
                 let body = "   ";
                 let current_cell = &self.cells[self._ix(i, j)];
-                let f =
-                    |neighbour: Option<usize>, ok: &str, bound: &str| -> String {
-                        match neighbour {
-                            Some(c) if current_cell.links.contains(&c) => ok.to_string(),
-                            _ => bound.to_string()
-                        }
-                    };
+                let f = |neighbour: Option<usize>, ok: &str, bound: &str| -> String {
+                    match neighbour {
+                        Some(c) if current_cell.links.contains(&c) => ok.to_string(),
+                        _ => bound.to_string(),
+                    }
+                };
                 let east_bound = f(self.east_ix(self._ix(i, j)), " ", "|");
                 let south_bound = f(self.south_ix(self._ix(i, j)), "   ", "---");
 
@@ -207,11 +215,14 @@ impl Display for RectangleGrid {
     }
 }
 
-
 impl AbstractGrid<Cell> for RectangleGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
-        let neighbors = &vec![self.north_ix(ix), self.east_ix(ix),
-                    self.west_ix(ix), self.south_ix(ix)];
+        let neighbors = &vec![
+            self.north_ix(ix),
+            self.east_ix(ix),
+            self.west_ix(ix),
+            self.south_ix(ix),
+        ];
 
         let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
         neighbors
@@ -235,28 +246,20 @@ impl AbstractGrid<Cell> for RectangleGrid {
     }
 }
 
-
 #[allow(dead_code)]
 pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
 
-
     cr.scale(scalex, scaley);
     cr.set_line_width(1.0);
     for ix in 0..g.len() {
         let cur_cell = g.cell(ix);
-        let draw_line =
-            |item: &Option<usize>, end: (f64, f64)| {
-                match item {
-                    Some(r_idx) if !cur_cell.links().contains(r_idx) =>
-                        cr.line_to(end.0, end.1),
-                    _ => cr.move_to(end.0, end.1)
-                }
-            };
-        let pixcoord = |ix: usize| -> f64 {
-            ix as f64 * cellsize
+        let draw_line = |item: &Option<usize>, end: (f64, f64)| match item {
+            Some(r_idx) if !cur_cell.links().contains(r_idx) => cr.line_to(end.0, end.1),
+            _ => cr.move_to(end.0, end.1),
         };
+        let pixcoord = |ix: usize| -> f64 { ix as f64 * cellsize };
         let x1 = pixcoord(cur_cell.col());
         let x2 = pixcoord(cur_cell.col() + 1);
         let y1 = pixcoord(cur_cell.row());
@@ -271,21 +274,24 @@ pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64
 }
 
 #[allow(dead_code)]
-pub fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
-                 step_state: &DijkstraStep, cellsize: f64) {
+pub fn draw_pathfind(
+    w: &DrawingArea,
+    cr: &Context,
+    g: &RectangleGrid,
+    step_state: &DijkstraStep,
+    cellsize: f64,
+) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
     cr.scale(scalex, scaley);
     cr.set_line_width(1.0);
 
-    let pixcoord = |ix: usize| -> f64 {
-        (ix as f64 + 0.5) * cellsize
-    };
+    let pixcoord = |ix: usize| -> f64 { (ix as f64 + 0.5) * cellsize };
 
     let circle = |x: f64, y: f64| {
         cr.save();
         cr.translate(x, y);
-        cr.arc(0.,0.,cellsize / 2.,0., 2. * PI);
+        cr.arc(0., 0., cellsize / 2., 0., 2. * PI);
         cr.restore();
     };
 
@@ -327,20 +333,17 @@ pub fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
         }
     }
 
-
     let cur_cell = g.cell(min_idx);
     let end_cell = g.cell(max_idx);
 
-
     cr.set_line_width(6.0);
     for (i, c) in step_state.cell_weights.iter().enumerate() {
-        let intensity= (max_length - c.path_length) as f64 / max_length as f64;
+        let intensity = (max_length - c.path_length) as f64 / max_length as f64;
         let dark = intensity;
         let bright = 0.5 + intensity / 2.;
         cr.set_source_rgb(dark, bright, dark);
         rect(i);
     }
-
 
     let x1 = pixcoord(cur_cell.col());
     let x2 = pixcoord(end_cell.col());
@@ -348,10 +351,10 @@ pub fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
     let y1 = pixcoord(cur_cell.row());
     let y2 = pixcoord(end_cell.row());
     cr.set_line_width(1.0);
-    cr.set_source_rgb(0.,0.,0.);
-    circle(x1,y1);
+    cr.set_source_rgb(0., 0., 0.);
+    circle(x1, y1);
     cr.stroke();
-    circle(x2,y2);
+    circle(x2, y2);
     cr.stroke();
     if step_state.cell_weights[max_idx].parent >= 0 {
         let mut cur_cell = max_idx as i32;
@@ -365,7 +368,7 @@ pub fn draw_pathfind(w: &DrawingArea, cr: &Context, g: &RectangleGrid,
 }
 
 #[allow(dead_code)]
-fn build_ui(app: &Application) {
+pub fn build_ui(app: &Application) {
     let window = ApplicationWindow::new(app);
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
     window.set_default_size(400, 400);
@@ -375,10 +378,10 @@ fn build_ui(app: &Application) {
     let mut g = RectangleGrid::new(25, 25);
     let mut rng = rand::thread_rng();
 
-//    sidewinder(&mut g, &mut rng);
-//    binary_tree(&mut g, &mut rng);
-//    aldous_broder(&mut g, &mut rng);
-//    hunt_and_kill(&mut g, &mut rng);
+    //    sidewinder(&mut g, &mut rng);
+    //    binary_tree(&mut g, &mut rng);
+    //    aldous_broder(&mut g, &mut rng);
+    //    hunt_and_kill(&mut g, &mut rng);
     recursive_backtracker(&mut g, &mut rng);
 
     img.set_vexpand(true);
@@ -386,8 +389,7 @@ fn build_ui(app: &Application) {
     let g_copy = g.clone();
     let cellsize = 10.;
 
-
-    let step_state= solve_with_longest_path(&g);
+    let step_state = solve_with_longest_path(&g);
 
     img.connect_draw(move |w, cr| {
         draw_pathfind(w, cr, &g, &step_state, cellsize);
