@@ -6,7 +6,6 @@ To build, you need rust and gtk libs installed.
 
 After launch it might look something like this:
 
-![screen](visual.png)
-
-Right now it's not usable without hacking the source code, hoping at some point 
-it will better
+![screen](img/rect.png)
+![screen](img/polar.png)
+![screen](img/hex.png)
