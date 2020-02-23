@@ -157,6 +157,49 @@ impl HexagonalGrid {
     }
 }
 
+fn center_coords(row: usize, col: usize, cellsize: f64) -> (f64, f64) {
+    let a = cellsize / 2.;
+    let b = cellsize * 3f64.sqrt() / 2.;
+
+    let cx = cellsize + 3. * col as f64 * a;
+    let cy = b + row as f64 * 2. * b + (if col % 2 == 0 { 0. } else { b });
+
+    (cx, cy)
+}
+
+struct HexagonalCoords {
+    pub x_fw: f64,
+    pub x_nw: f64,
+    pub x_ne: f64,
+    pub x_fe: f64,
+
+    pub y_s: f64,
+    pub y_n: f64,
+    pub y_m: f64,
+
+    pub cx: f64,
+    pub cy: f64,
+}
+
+fn hex_points(row: usize, col: usize, cellsize: f64) -> HexagonalCoords {
+    let (cx, cy) = center_coords(row, col, cellsize);
+    let a = cellsize / 2.;
+    let b = cellsize * 3f64.sqrt() / 2.;
+
+    let x_fw = cx - cellsize;
+    let x_nw = cx - a;
+    let x_ne = cx + a;
+    let x_fe = cx + cellsize;
+
+    let y_n = cy - b;
+    let y_m = cy;
+    let y_s = cy + b;
+
+    HexagonalCoords {
+        x_fw, x_nw, x_ne, x_fe, y_s, y_n, y_m, cx, cy
+    }
+}
+
 pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64) {
     cr.save();
     let a = cellsize / 2.;
@@ -177,26 +220,15 @@ pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64
             _ => cr.move_to(end.0, end.1),
         };
 
-        let cx = cellsize + 3. * cur_cell.col() as f64 * a;
-        let cy =
-            b + cur_cell.row() as f64 * 2. * b + (if cur_cell.col() % 2 == 0 { 0. } else { b });
+        let coords = hex_points(cur_cell.row(), cur_cell.col(), cellsize);
 
-        let x_fw = cx - cellsize;
-        let x_nw = cx - a;
-        let x_ne = cx + a;
-        let x_fe = cx + cellsize;
-
-        let y_n = cy - b;
-        let y_m = cy;
-        let y_s = cy + b;
-
-        cr.move_to(x_fw, y_m);
-        draw_line(&g.southwest_ix(ix), (x_nw, y_s));
-        draw_line(&g.south_ix(ix), (x_ne, y_s));
-        draw_line(&g.southeast_ix(ix), (x_fe, y_m));
-        draw_line(&g.northeast_ix(ix), (x_ne, y_n));
-        draw_line(&g.north_ix(ix), (x_nw, y_n));
-        draw_line(&g.northwest_ix(ix), (x_fw, y_m));
+        cr.move_to(coords.x_fw, coords.y_m);
+        draw_line(&g.southwest_ix(ix), (coords.x_nw, coords.y_s));
+        draw_line(&g.south_ix(ix), (coords.x_ne, coords.y_s));
+        draw_line(&g.southeast_ix(ix), (coords.x_fe, coords.y_m));
+        draw_line(&g.northeast_ix(ix), (coords.x_ne, coords.y_n));
+        draw_line(&g.north_ix(ix), (coords.x_nw, coords.y_n));
+        draw_line(&g.northwest_ix(ix), (coords.x_fw, coords.y_m));
         cr.stroke();
     }
 
@@ -236,25 +268,43 @@ pub fn draw_pathfind(
         }
     }
 
-    let coords = |ix: i32| {
+    let coords = |ix: usize| {
         let row = g.cell(ix as usize).row();
         let col = g.cell(ix as usize).col();
-        (
-            cellsize + 3. * col as f64 * a,
-            b + row as f64 * 2. * b + (if col % 2 == 0 { 0. } else { b }),
-        )
+        hex_points(row, col, cellsize)
     };
 
+    for (i, c) in step_state.cell_weights.iter().enumerate() {
+        let intensity = (max_length - c.path_length) as f64 / max_length as f64;
+        let dark = intensity;
+        let bright = 0.5 + intensity / 2.;
+        cr.set_source_rgb(dark, bright, dark);
+        cr.set_line_width(0.1);
+        // cr.set_source_rgb(1., 1., 0.);
+        let coords = coords(i);
+
+        cr.move_to(coords.x_fw, coords.y_m);
+        cr.line_to(coords.x_nw, coords.y_s);
+        cr.line_to(coords.x_ne, coords.y_s);
+        cr.line_to(coords.x_fe, coords.y_m);
+        cr.line_to(coords.x_ne, coords.y_n);
+        cr.line_to(coords.x_nw, coords.y_n);
+        cr.line_to(coords.x_fw, coords.y_m);
+        cr.fill();
+    }
+
+
+
     if step_state.cell_weights[max_idx].parent >= 0 {
-        let mut cur_cell = max_idx as i32;
+        let mut cur_cell = max_idx;
         cr.set_source_rgb(1., 0., 0.);
         cr.set_line_width(4.0);
-        let (x1, y1) = coords(cur_cell);
-        cr.move_to(x1, y1);
-        while cur_cell != (min_idx as i32) {
-            let (x2, y2) = coords(step_state.cell_weights[cur_cell as usize].parent);
-            cr.line_to(x2, y2);
-            cur_cell = step_state.cell_weights[cur_cell as usize].parent;
+        let coords_1 = coords(cur_cell);
+        cr.move_to(coords_1.cx, coords_1.cy);
+        while cur_cell != (min_idx as usize) {
+            let coords_2 = coords(step_state.cell_weights[cur_cell].parent as usize);
+            cr.line_to(coords_2.cx, coords_2.cy);
+            cur_cell = step_state.cell_weights[cur_cell].parent as usize;
         }
         cr.stroke();
     }
