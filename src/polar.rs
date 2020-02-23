@@ -7,7 +7,7 @@ use std::fmt::{Display, Error, Formatter};
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, DrawingArea};
+use gtk::DrawingArea;
 use std::f64::consts::PI;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -178,19 +178,19 @@ impl CircularGrid {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn outward_ixs(&self, ix: usize) -> Vec<usize> {
-        self.cells[ix].outward.clone()
-    }
+    // #[allow(dead_code)]
+    // pub fn outward_ixs(&self, ix: usize) -> Vec<usize> {
+    //     self.cells[ix].outward.clone()
+    // }
 
     pub fn cw_ix(&self, ix: usize) -> usize {
         self.cells[ix].clockwise
     }
 
-    #[allow(dead_code)]
-    pub fn ccw_ix(&self, ix: usize) -> usize {
-        self.cells[ix].counter_clockwise
-    }
+    // #[allow(dead_code)]
+    // pub fn ccw_ix(&self, ix: usize) -> usize {
+    //     self.cells[ix].counter_clockwise
+    // }
 
     pub fn inward_ix(&self, ix: usize) -> Option<usize> {
         // return self._ix_opt(row.wrapping_add(1), col);
@@ -405,20 +405,4 @@ pub fn draw_polar_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>,
         }
         gtk::Inhibit(false)
     });
-}
-
-#[allow(dead_code)]
-pub fn build_polar_ui(app: &Application) {
-    let window = ApplicationWindow::new(app);
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    window.set_default_size(400, 400);
-
-    let img = gtk::DrawingArea::new();
-    vbox.add(&img);
-
-    img.set_vexpand(true);
-    img.set_hexpand(true);
-
-    window.add(&vbox);
-    window.show_all();
 }

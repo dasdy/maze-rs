@@ -31,7 +31,6 @@ impl Display for DijkstraStep {
 }
 
 impl DijkstraStep {
-    #[allow(dead_code)]
     pub fn initial<T: AbstractCell>(g: &dyn AbstractGrid<T>, start: usize) -> DijkstraStep {
         let mut cell_weights: Vec<PathBacktrackItem> = Vec::new();
         for _ in 0..g.len() {
@@ -56,7 +55,6 @@ impl DijkstraStep {
         }
     }
 
-    #[allow(dead_code)]
     pub fn next_step<T: AbstractCell>(&self, g: &dyn AbstractGrid<T>) -> DijkstraStep {
         let mut lookup_queue = self.lookup_queue.clone();
         let mut cell_weights = self.cell_weights.clone();

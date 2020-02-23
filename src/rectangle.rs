@@ -3,7 +3,7 @@ use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
 use crate::solve::solve_with_longest_path;
 use crate::solve::DijkstraStep;
 use cairo::Context;
-use gtk::{Application, ApplicationWindow, DrawingArea};
+use gtk::DrawingArea;
 use std::collections::HashSet;
 use std::f64::consts::PI;
 use std::fmt::{Display, Error, Formatter};
@@ -37,7 +37,6 @@ impl AbstractCell for Cell {
     }
 }
 
-#[allow(dead_code)]
 impl Cell {
     pub fn new(row: usize, col: usize) -> Cell {
         Cell {
@@ -82,7 +81,6 @@ impl CompassDirections for RectangleGrid {
 }
 
 impl RectangleGrid {
-    #[allow(dead_code)]
     pub fn new(row: usize, col: usize) -> RectangleGrid {
         let mut gridarr = Vec::new();
         for i in 0..row {
@@ -95,11 +93,6 @@ impl RectangleGrid {
             height: row,
             cells: gridarr,
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn access(&self, row: usize, col: usize) -> Option<&Cell> {
-        self._ix_opt(row, col).map(|ix| &self.cells[ix])
     }
 
     pub fn _ix(&self, row: usize, col: usize) -> usize {
@@ -248,7 +241,6 @@ impl AbstractGrid<Cell> for RectangleGrid {
     }
 }
 
-#[allow(dead_code)]
 pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64) {
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
@@ -275,7 +267,6 @@ pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &RectangleGrid, cellsize: f64
     }
 }
 
-#[allow(dead_code)]
 pub fn draw_pathfind(
     w: &DrawingArea,
     cr: &Context,
@@ -398,21 +389,4 @@ pub fn draw_rectangle_grid(
         }
         gtk::Inhibit(false)
     });
-}
-
-#[allow(dead_code)]
-pub fn build_ui(app: &Application, img: &gtk::DrawingArea, button: &gtk::Button) {
-    let window = ApplicationWindow::new(app);
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-    window.set_default_size(400, 400);
-
-    // let img = gtk::DrawingArea::new();
-    vbox.add(img);
-    vbox.add(button);
-    img.set_vexpand(true);
-    img.set_hexpand(true);
-
-    window.add(&vbox);
-    window.show_all();
 }

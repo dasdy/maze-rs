@@ -106,7 +106,6 @@ pub fn hunt_and_kill<T: AbstractCell>(g: &mut dyn AbstractGrid<T>, r: &mut rand:
     }
 }
 
-#[allow(dead_code)]
 pub fn recursive_backtracker<T: AbstractCell>(
     g: &mut dyn AbstractGrid<T>,
     r: &mut rand::rngs::ThreadRng,
