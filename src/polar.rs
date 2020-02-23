@@ -7,6 +7,7 @@ use std::fmt::{Display, Error, Formatter};
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::prelude::*;
+use std::sync::{Mutex, Arc};
 use gtk::{Application, ApplicationWindow, DrawingArea};
 use std::f64::consts::PI;
 
@@ -283,6 +284,7 @@ pub fn draw_polar_pathfind(
     step_state: &DijkstraStep,
     cellsize: usize,
 ) {
+    cr.save();
     let scalex = w.get_allocated_width() as f64 / (g.height * cellsize * 2) as f64;
     let scaley = w.get_allocated_height() as f64 / (g.height * cellsize * 2) as f64;
     cr.scale(scalex, scaley);
@@ -383,6 +385,26 @@ pub fn draw_polar_pathfind(
             cur_cell = step_state.cell_weights[cur_cell as usize].parent;
         }
     }
+
+    cr.restore();
+}
+
+pub fn draw_polar_grid(img: &gtk::DrawingArea, signal_handler: Arc<Mutex<bool>>, on_value: bool) {
+    let mut rng = rand::thread_rng();
+    let actual_ring_height = 20;
+    let mut g_polar = CircularGrid::new(10);
+    recursive_backtracker(&mut g_polar, &mut rng);
+    let step_state = solve_with_longest_path(&g_polar);
+
+    let clone = g_polar.clone();
+    img.connect_draw(move |w, cr| {
+        let bool_val = signal_handler.lock().unwrap();
+        if *bool_val == on_value {
+            draw_polar_pathfind(w, cr, &clone, &step_state, actual_ring_height);
+            draw_polar_maze(w, cr, &g_polar, actual_ring_height);
+        }
+        gtk::Inhibit(false)
+    });
 }
 
 #[allow(dead_code)]
@@ -396,23 +418,6 @@ pub fn build_polar_ui(app: &Application) {
 
     img.set_vexpand(true);
     img.set_hexpand(true);
-
-    let mut rng = rand::thread_rng();
-    let actual_ring_height = 20;
-    let mut g_polar = CircularGrid::new(10);
-    recursive_backtracker(&mut g_polar, &mut rng);
-    let step_state = solve_with_longest_path(&g_polar);
-
-    let clone = g_polar.clone();
-    img.connect_draw(move |w, cr| {
-        draw_polar_pathfind(w, cr, &clone, &step_state, actual_ring_height);
-        gtk::Inhibit(false)
-    });
-
-    img.connect_draw(move |w, cr| {
-        draw_polar_maze(w, cr, &g_polar, actual_ring_height);
-        gtk::Inhibit(false)
-    });
 
     window.add(&vbox);
     window.show_all();

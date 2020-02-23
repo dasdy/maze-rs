@@ -3,6 +3,7 @@ use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
 use crate::solve::solve_with_longest_path;
 use crate::solve::DijkstraStep;
 use cairo::Context;
+use std::sync::{Mutex, Arc};
 use gtk::{Application, ApplicationWindow, DrawingArea};
 use std::collections::HashSet;
 use std::f64::consts::PI;
@@ -281,6 +282,7 @@ pub fn draw_pathfind(
     step_state: &DijkstraStep,
     cellsize: f64,
 ) {
+    cr.save();
     let scalex = w.get_allocated_width() as f64 / (g.width as f64 * cellsize);
     let scaley = w.get_allocated_height() as f64 / (g.height as f64 * cellsize);
     cr.scale(scalex, scaley);
@@ -365,16 +367,10 @@ pub fn draw_pathfind(
             cur_cell = step_state.cell_weights[cur_cell as usize].parent;
         }
     }
+    cr.restore();
 }
 
-#[allow(dead_code)]
-pub fn build_ui(app: &Application) {
-    let window = ApplicationWindow::new(app);
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    window.set_default_size(400, 400);
-
-    let img = gtk::DrawingArea::new();
-    vbox.add(&img);
+pub fn draw_rectangle_grid(img: &gtk::DrawingArea, signal_handler: Arc<Mutex<bool>>, on_value: bool) {
     let mut g = RectangleGrid::new(25, 25);
     let mut rng = rand::thread_rng();
 
@@ -384,22 +380,35 @@ pub fn build_ui(app: &Application) {
     //    hunt_and_kill(&mut g, &mut rng);
     recursive_backtracker(&mut g, &mut rng);
 
-    img.set_vexpand(true);
-    img.set_hexpand(true);
+
     let g_copy = g.clone();
     let cellsize = 10.;
 
     let step_state = solve_with_longest_path(&g);
 
     img.connect_draw(move |w, cr| {
-        draw_pathfind(w, cr, &g, &step_state, cellsize);
+        let bool_val = signal_handler.lock().unwrap();
+        if *bool_val == on_value {
+            draw_pathfind(w, cr, &g, &step_state, cellsize);
+            draw_maze(w, cr, &g_copy, cellsize);
+        }
         gtk::Inhibit(false)
     });
+}
 
-    img.connect_draw(move |w, cr| {
-        draw_maze(w, cr, &g_copy, cellsize);
-        gtk::Inhibit(false)
-    });
+#[allow(dead_code)]
+pub fn build_ui(app: &Application, img: &gtk::DrawingArea, button: &gtk::Button) {
+    let window = ApplicationWindow::new(app);
+    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+
+    window.set_default_size(400, 400);
+
+    // let img = gtk::DrawingArea::new();
+    vbox.add(img);
+    vbox.add(button);
+    img.set_vexpand(true);
+    img.set_hexpand(true);
+    
 
     window.add(&vbox);
     window.show_all();
