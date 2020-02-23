@@ -1,5 +1,5 @@
 use crate::generate::recursive_backtracker;
-use crate::grid::{AbstractCell, AbstractGrid};
+use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
 use crate::gtk::WidgetExt;
 use crate::solve::solve_with_longest_path;
 use crate::solve::DijkstraStep;
@@ -10,13 +10,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct HexagonalCell {
+pub struct DeltaCell {
     pub links: HashSet<usize>,
     pub row: usize,
     pub col: usize,
 }
 
-impl AbstractCell for HexagonalCell {
+impl AbstractCell for DeltaCell {
     fn row(&self) -> usize {
         self.row
     }
@@ -34,29 +34,62 @@ impl AbstractCell for HexagonalCell {
     }
 }
 
-impl HexagonalCell {
-    pub fn new(row: usize, col: usize) -> HexagonalCell {
+impl DeltaCell {
+    pub fn new(row: usize, col: usize) -> DeltaCell {
         let links = HashSet::new();
-        HexagonalCell { links, row, col }
+        DeltaCell { links, row, col }
     }
 }
 
 #[derive(Clone)]
-pub struct HexagonalGrid {
+pub struct DeltaGrid {
     pub height: usize,
     pub width: usize,
-    pub cells: Vec<HexagonalCell>,
+    pub cells: Vec<DeltaCell>,
 }
 
-impl AbstractGrid<HexagonalCell> for HexagonalGrid {
+impl CompassDirections for DeltaGrid {
+    fn north_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+        if is_up(row, col) {
+            None
+        } else {
+            self._ix_opt(row.wrapping_sub(1), col)
+        }
+    }
+
+    fn east_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+        self._ix_opt(row, col.wrapping_add(1))
+    }
+
+    fn west_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+        self._ix_opt(row, col.wrapping_sub(1))
+    }
+
+    fn south_ix(&self, ix: usize) -> Option<usize> {
+        let row = self.cells[ix].row;
+        let col = self.cells[ix].col;
+
+        if is_up(row, col) {
+            self._ix_opt(row.wrapping_add(1), col)
+        } else {
+            None
+        }
+    }
+}
+
+impl AbstractGrid<DeltaCell> for DeltaGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
         let neighbors = &vec![
             self.north_ix(ix),
             self.south_ix(ix),
-            self.northeast_ix(ix),
-            self.northwest_ix(ix),
-            self.southeast_ix(ix),
-            self.southwest_ix(ix),
+            self.east_ix(ix),
+            self.west_ix(ix),
         ];
 
         let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
@@ -74,75 +107,24 @@ impl AbstractGrid<HexagonalCell> for HexagonalGrid {
         (self.cells[ix2].links).insert(ix1);
     }
 
-    fn cell(&self, ix: usize) -> &HexagonalCell {
+    fn cell(&self, ix: usize) -> &DeltaCell {
         &self.cells[ix]
     }
 }
 
-impl HexagonalGrid {
-    pub fn new(rows: usize, cols: usize) -> HexagonalGrid {
+impl DeltaGrid {
+    pub fn new(rows: usize, cols: usize) -> DeltaGrid {
         let mut gridarr = Vec::new();
         for i in 0..rows {
             for j in 0..cols {
-                gridarr.push(HexagonalCell::new(i, j));
+                gridarr.push(DeltaCell::new(i, j));
             }
         }
-        HexagonalGrid {
+        DeltaGrid {
             width: cols,
             height: rows,
             cells: gridarr,
         }
-    }
-
-    fn north_diag(&self, col: usize, row: usize) -> usize {
-        if col % 2 == 0 {
-            row.wrapping_sub(1)
-        } else {
-            row
-        }
-    }
-    fn south_diag(&self, col: usize, row: usize) -> usize {
-        if col % 2 == 0 {
-            row
-        } else {
-            row.wrapping_add(1)
-        }
-    }
-
-    fn northeast_ix(&self, ix: usize) -> Option<usize> {
-        let row = self.cells[ix].row;
-        let col = self.cells[ix].col;
-        self._ix_opt(self.north_diag(col, row), col.wrapping_add(1))
-    }
-
-    fn southeast_ix(&self, ix: usize) -> Option<usize> {
-        let row = self.cells[ix].row;
-        let col = self.cells[ix].col;
-        self._ix_opt(self.south_diag(col, row), col.wrapping_add(1))
-    }
-
-    fn northwest_ix(&self, ix: usize) -> Option<usize> {
-        let row = self.cells[ix].row;
-        let col = self.cells[ix].col;
-        self._ix_opt(self.north_diag(col, row), col.wrapping_sub(1))
-    }
-
-    fn southwest_ix(&self, ix: usize) -> Option<usize> {
-        let row = self.cells[ix].row;
-        let col = self.cells[ix].col;
-        self._ix_opt(self.south_diag(col, row), col.wrapping_sub(1))
-    }
-
-    fn south_ix(&self, ix: usize) -> Option<usize> {
-        let row = self.cells[ix].row;
-        let col = self.cells[ix].col;
-        self._ix_opt(row.wrapping_add(1), col)
-    }
-
-    fn north_ix(&self, ix: usize) -> Option<usize> {
-        let row = self.cells[ix].row;
-        let col = self.cells[ix].col;
-        self._ix_opt(row.wrapping_sub(1), col)
     }
 
     pub fn _ix(&self, row: usize, col: usize) -> usize {
@@ -157,64 +139,52 @@ impl HexagonalGrid {
     }
 }
 
-fn center_coords(row: usize, col: usize, cellsize: f64) -> (f64, f64) {
-    let a = cellsize / 2.;
-    let b = cellsize * 3f64.sqrt() / 2.;
-
-    let cx = cellsize + 3. * col as f64 * a;
-    let cy = b + row as f64 * 2. * b + (if col % 2 == 0 { 0. } else { b });
-
-    (cx, cy)
+fn is_up(row: usize, col: usize) -> bool {
+    (row + col) % 2 == 0
 }
 
-struct HexagonalCoords {
-    pub x_fw: f64,
-    pub x_nw: f64,
-    pub x_ne: f64,
-    pub x_fe: f64,
-
-    pub y_s: f64,
-    pub y_n: f64,
-    pub y_m: f64,
-
+struct DeltaCellPoints {
+    pub westx: f64,
+    pub eastx: f64,
+    pub midx: f64,
+    pub apexy: f64,
+    pub basey: f64,
     pub cx: f64,
     pub cy: f64,
 }
 
-fn hex_points(row: usize, col: usize, cellsize: f64) -> HexagonalCoords {
-    let (cx, cy) = center_coords(row, col, cellsize);
-    let a = cellsize / 2.;
-    let b = cellsize * 3f64.sqrt() / 2.;
+fn delta_points(row: usize, col: usize, cellsize: f64) -> DeltaCellPoints {
+    let half_w = cellsize / 2.;
+    let height = cellsize * 3f64.sqrt() / 2.;
+    let half_h = height / 2.;
+    let cx = half_w + col as f64 * half_w;
+    let cy = half_h + row as f64 * height;
+    let westx = cx - half_w;
+    let midx = cx;
+    let eastx = cx + half_w;
 
-    let x_fw = cx - cellsize;
-    let x_nw = cx - a;
-    let x_ne = cx + a;
-    let x_fe = cx + cellsize;
+    let (basey, apexy) = if is_up(row, col) {
+        (cy + half_h, cy - half_h)
+    } else {
+        (cy - half_h, cy + half_h)
+    };
 
-    let y_n = cy - b;
-    let y_m = cy;
-    let y_s = cy + b;
-
-    HexagonalCoords {
-        x_fw,
-        x_nw,
-        x_ne,
-        x_fe,
-        y_s,
-        y_n,
-        y_m,
+    DeltaCellPoints {
+        westx,
+        eastx,
+        midx,
+        apexy,
+        basey,
         cx,
         cy,
     }
 }
 
-pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64) {
+pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &DeltaGrid, cellsize: f64) {
     cr.save();
-    let a = cellsize / 2.;
-    let b = cellsize * 3f64.sqrt() / 2.;
 
-    let canvas_width = 3. * g.width as f64 * a + a;
-    let canvas_height = 2. * g.height as f64 * b + b + 0.1 * cellsize;
+    let canvas_width = (1 + g.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
+    let canvas_height = g.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
 
     let scalex = w.get_allocated_width() as f64 / canvas_width;
     let scaley = w.get_allocated_height() as f64 / canvas_height;
@@ -228,15 +198,21 @@ pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64
             _ => cr.move_to(end.0, end.1),
         };
 
-        let coords = hex_points(cur_cell.row(), cur_cell.col(), cellsize);
+        let coords = delta_points(cur_cell.row(), cur_cell.col(), cellsize);
 
-        cr.move_to(coords.x_fw, coords.y_m);
-        draw_line(&g.southwest_ix(ix), (coords.x_nw, coords.y_s));
-        draw_line(&g.south_ix(ix), (coords.x_ne, coords.y_s));
-        draw_line(&g.southeast_ix(ix), (coords.x_fe, coords.y_m));
-        draw_line(&g.northeast_ix(ix), (coords.x_ne, coords.y_n));
-        draw_line(&g.north_ix(ix), (coords.x_nw, coords.y_n));
-        draw_line(&g.northwest_ix(ix), (coords.x_fw, coords.y_m));
+        cr.move_to(coords.westx, coords.basey);
+        draw_line(&g.west_ix(ix), (coords.midx, coords.apexy));
+        draw_line(&g.east_ix(ix), (coords.eastx, coords.basey));
+
+        let isup = is_up(cur_cell.row(), cur_cell.col());
+        let no_south = isup && g.south_ix(ix).is_none();
+        let not_linked = !isup
+            && g.north_ix(ix)
+                .map(|r_idx| !cur_cell.links().contains(&r_idx))
+                .unwrap_or(false);
+        if no_south || not_linked {
+            cr.line_to(coords.westx, coords.basey);
+        }
         cr.stroke();
     }
 
@@ -246,16 +222,13 @@ pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64
 pub fn draw_pathfind(
     w: &DrawingArea,
     cr: &Context,
-    g: &HexagonalGrid,
+    g: &DeltaGrid,
     step_state: &DijkstraStep,
     cellsize: f64,
 ) {
     cr.save();
-    let a = cellsize / 2.;
-    let b = cellsize * 3f64.sqrt() / 2.;
-
-    let canvas_width = 3. * g.width as f64 * a + a;
-    let canvas_height = 2. * g.height as f64 * b + b + 0.1 * cellsize;
+    let canvas_width = (1 + g.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
+    let canvas_height = g.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
 
     let scalex = w.get_allocated_width() as f64 / canvas_width;
     let scaley = w.get_allocated_height() as f64 / canvas_height;
@@ -279,7 +252,7 @@ pub fn draw_pathfind(
     let coords = |ix: usize| {
         let row = g.cell(ix as usize).row();
         let col = g.cell(ix as usize).col();
-        hex_points(row, col, cellsize)
+        delta_points(row, col, cellsize)
     };
 
     for (i, c) in step_state.cell_weights.iter().enumerate() {
@@ -288,23 +261,18 @@ pub fn draw_pathfind(
         let bright = 0.5 + intensity / 2.;
         cr.set_source_rgb(dark, bright, dark);
         cr.set_line_width(0.1);
-        // cr.set_source_rgb(1., 1., 0.);
         let coords = coords(i);
 
-        cr.move_to(coords.x_fw, coords.y_m);
-        cr.line_to(coords.x_nw, coords.y_s);
-        cr.line_to(coords.x_ne, coords.y_s);
-        cr.line_to(coords.x_fe, coords.y_m);
-        cr.line_to(coords.x_ne, coords.y_n);
-        cr.line_to(coords.x_nw, coords.y_n);
-        cr.line_to(coords.x_fw, coords.y_m);
+        cr.move_to(coords.westx, coords.basey);
+        cr.line_to(coords.midx, coords.apexy);
+        cr.line_to(coords.eastx, coords.basey);
         cr.fill();
     }
 
     if step_state.cell_weights[max_idx].parent >= 0 {
         let mut cur_cell = max_idx;
         cr.set_source_rgb(1., 0., 0.);
-        cr.set_line_width(4.0);
+        cr.set_line_width(1.0);
         let coords_1 = coords(cur_cell);
         cr.move_to(coords_1.cx, coords_1.cy);
         while cur_cell != (min_idx as usize) {
@@ -318,9 +286,10 @@ pub fn draw_pathfind(
     cr.restore();
 }
 
-pub fn draw_hex_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
-    let mut g = HexagonalGrid::new(15, 15);
+pub fn draw_delta_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
+    let mut g = DeltaGrid::new(15, 20);
     let mut rng = rand::thread_rng();
+
     recursive_backtracker(&mut g, &mut rng);
 
     let g_copy = g.clone();
@@ -329,6 +298,7 @@ pub fn draw_hex_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, o
     let step_state = solve_with_longest_path(&g);
 
     img.connect_draw(move |w, cr| {
+        // let bool_val = signal_handler;
         if signal_handler.load(Ordering::Relaxed) == on_value {
             draw_pathfind(w, cr, &g, &step_state, cellsize);
             draw_maze(w, cr, &g_copy, cellsize);
