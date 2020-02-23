@@ -1,13 +1,13 @@
-use crate::grid::{AbstractCell, AbstractGrid};
-use std::collections::HashSet;
-use gtk::DrawingArea;
-use cairo::Context;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
-use crate::gtk::WidgetExt;
 use crate::generate::recursive_backtracker;
+use crate::grid::{AbstractCell, AbstractGrid};
+use crate::gtk::WidgetExt;
 use crate::solve::solve_with_longest_path;
 use crate::solve::DijkstraStep;
+use cairo::Context;
+use gtk::DrawingArea;
+use std::collections::HashSet;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct HexagonalCell {
@@ -37,11 +37,7 @@ impl AbstractCell for HexagonalCell {
 impl HexagonalCell {
     pub fn new(row: usize, col: usize) -> HexagonalCell {
         let links = HashSet::new();
-        HexagonalCell {
-            links: links,
-            row: row,
-            col: col,
-        }
+        HexagonalCell { links, row, col }
     }
 }
 
@@ -161,29 +157,29 @@ impl HexagonalGrid {
     }
 }
 
-
 pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64) {
     cr.save();
     let a = cellsize / 2.;
     let b = cellsize * 3f64.sqrt() / 2.;
 
     let canvas_width = 3. * g.width as f64 * a + a;
-    let canvas_height = 2. * g.height as f64 * b + b;
+    let canvas_height = 2. * g.height as f64 * b + b + 0.1 * cellsize;
 
     let scalex = w.get_allocated_width() as f64 / canvas_width;
     let scaley = w.get_allocated_height() as f64 / canvas_height;
     cr.scale(scalex, scaley);
-    
+
     for ix in 0..g.len() {
         let cur_cell = g.cell(ix);
         let draw_line = |item: &Option<usize>, end: (f64, f64)| match item {
-            Some(r_idx) if !cur_cell.links().contains(r_idx) => cr.line_to(end.0, end.1),
+            Some(r_idx) if (!cur_cell.links().contains(r_idx)) => cr.line_to(end.0, end.1),
+            None => cr.line_to(end.0, end.1),
             _ => cr.move_to(end.0, end.1),
         };
 
-
         let cx = cellsize + 3. * cur_cell.col() as f64 * a;
-        let cy = b + cur_cell.row() as f64 * 2. * b + (if cur_cell.col() % 2 == 0 { 0. } else { b });
+        let cy =
+            b + cur_cell.row() as f64 * 2. * b + (if cur_cell.col() % 2 == 0 { 0. } else { b });
 
         let x_fw = cx - cellsize;
         let x_nw = cx - a;
@@ -193,7 +189,7 @@ pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64
         let y_n = cy - b;
         let y_m = cy;
         let y_s = cy + b;
-        
+
         cr.move_to(x_fw, y_m);
         draw_line(&g.southwest_ix(ix), (x_nw, y_s));
         draw_line(&g.south_ix(ix), (x_ne, y_s));
@@ -214,14 +210,59 @@ pub fn draw_pathfind(
     step_state: &DijkstraStep,
     cellsize: f64,
 ) {
+    cr.save();
+    let a = cellsize / 2.;
+    let b = cellsize * 3f64.sqrt() / 2.;
+
+    let canvas_width = 3. * g.width as f64 * a + a;
+    let canvas_height = 2. * g.height as f64 * b + b + 0.1 * cellsize;
+
+    let scalex = w.get_allocated_width() as f64 / canvas_width;
+    let scaley = w.get_allocated_height() as f64 / canvas_height;
+    cr.scale(scalex, scaley);
+
+    let mut max_idx = 0;
+    let mut min_idx = 0;
+    let mut max_length = step_state.cell_weights[max_idx].path_length;
+    let mut min_length = max_length;
+    for (i, c) in step_state.cell_weights.iter().enumerate() {
+        if c.path_length > max_length {
+            max_length = c.path_length;
+            max_idx = i;
+        }
+        if c.path_length < min_length {
+            min_length = c.path_length;
+            min_idx = i;
+        }
+    }
+
+    let coords = |ix: i32| {
+        let row = g.cell(ix as usize).row();
+        let col = g.cell(ix as usize).col();
+        (
+            cellsize + 3. * col as f64 * a,
+            b + row as f64 * 2. * b + (if col % 2 == 0 { 0. } else { b }),
+        )
+    };
+
+    if step_state.cell_weights[max_idx].parent >= 0 {
+        let mut cur_cell = max_idx as i32;
+        cr.set_source_rgb(1., 0., 0.);
+        cr.set_line_width(4.0);
+        let (x1, y1) = coords(cur_cell);
+        cr.move_to(x1, y1);
+        while cur_cell != (min_idx as i32) {
+            let (x2, y2) = coords(step_state.cell_weights[cur_cell as usize].parent);
+            cr.line_to(x2, y2);
+            cur_cell = step_state.cell_weights[cur_cell as usize].parent;
+        }
+        cr.stroke();
+    }
+
+    cr.restore();
 }
 
-
-pub fn draw_hex_grid(
-    img: &gtk::DrawingArea,
-    signal_handler: Arc<AtomicUsize>,
-    on_value: usize,
-) {
+pub fn draw_hex_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
     let mut g = HexagonalGrid::new(15, 15);
     let mut rng = rand::thread_rng();
     recursive_backtracker(&mut g, &mut rng);
@@ -232,7 +273,6 @@ pub fn draw_hex_grid(
     let step_state = solve_with_longest_path(&g);
 
     img.connect_draw(move |w, cr| {
-        // let bool_val = signal_handler;
         if signal_handler.load(Ordering::Relaxed) == on_value {
             draw_pathfind(w, cr, &g, &step_state, cellsize);
             draw_maze(w, cr, &g_copy, cellsize);

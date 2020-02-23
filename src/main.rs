@@ -27,13 +27,11 @@ fn create_gtk_app() {
     application.connect_activate(move |app| {
         let window = ApplicationWindow::new(app);
         let container = gtk::Box::new(gtk::Orientation::Vertical, 5);
-        
 
         let img = gtk::DrawingArea::new();
         img.set_size_request(400, 400);
         let img_clone = img.clone();
-        
-        
+
         img.set_vexpand(true);
         img.set_hexpand(true);
         let signal_handler: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));

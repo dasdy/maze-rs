@@ -295,15 +295,6 @@ pub fn draw_pathfind(
         (pixcoord(col), pixcoord(row))
     };
 
-    let line = |i1: i32, i2: i32| {
-        let (x1, y1) = coords(i1);
-        let (x2, y2) = coords(i2);
-
-        cr.move_to(x1, y1);
-        cr.line_to(x2, y2);
-        cr.stroke();
-    };
-
     let rect = |i: usize| {
         let row = g.cell(i).row() as f64;
         let col = g.cell(i).col() as f64;
@@ -354,10 +345,15 @@ pub fn draw_pathfind(
         let mut cur_cell = max_idx as i32;
         cr.set_source_rgb(1., 0., 0.);
         cr.set_line_width(4.0);
+        let (x1, y1) = coords(cur_cell);
+        cr.move_to(x1, y1);
+
         while cur_cell != (min_idx as i32) {
-            line(cur_cell, step_state.cell_weights[cur_cell as usize].parent);
+            let (x2, y2) = coords(step_state.cell_weights[cur_cell as usize].parent);
+            cr.line_to(x2, y2);
             cur_cell = step_state.cell_weights[cur_cell as usize].parent;
         }
+        cr.stroke();
     }
     cr.restore();
 }

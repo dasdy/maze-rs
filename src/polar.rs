@@ -385,6 +385,7 @@ pub fn draw_polar_pathfind(
             );
             cur_cell = step_state.cell_weights[cur_cell as usize].parent;
         }
+        cr.stroke();
     }
 
     cr.restore();
