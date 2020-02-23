@@ -15,8 +15,9 @@ mod grid;
 mod polar;
 mod rectangle;
 mod solve;
-use std::sync::{Mutex, Arc};
 use gtk::Application;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 fn create_gtk_app() {
     let application = Application::new(Some("com.dasdy.mazes"), Default::default())
@@ -28,28 +29,25 @@ fn create_gtk_app() {
 
         let button = Button::new_with_label("draw rectangle maze");
         let button_polar = Button::new_with_label("draw polar maze");
-        
+
         let img = gtk::DrawingArea::new();
         img.set_size_request(400, 400);
         let img_clone = img.clone();
         let img_clone_2 = img.clone();
         img.set_vexpand(true);
         img.set_hexpand(true);
-        let signal_handler: Arc<Mutex<bool>> = Arc::new(Mutex::new(true));
-        
-        rectangle::draw_rectangle_grid(&img, signal_handler.clone(), true);
-        polar::draw_polar_grid(&img_clone_2, signal_handler.clone(), false);
+        let signal_handler: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+
+        rectangle::draw_rectangle_grid(&img, signal_handler.clone(), 0);
+        polar::draw_polar_grid(&img_clone_2, signal_handler.clone(), 1);
         let signal_handler_1_clone = signal_handler.clone();
         button.connect_clicked(move |_| {
-            let mut val = signal_handler_1_clone.lock().unwrap();
-            *val = true;
+            signal_handler_1_clone.store(0, Ordering::Relaxed);
             img_clone.queue_draw();
         });
 
-
         button_polar.connect_clicked(move |_| {
-            let mut val = signal_handler.lock().unwrap();
-            *val = false;
+            signal_handler.store(1, Ordering::Relaxed);
             img_clone_2.queue_draw();
         });
 

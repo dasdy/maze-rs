@@ -7,9 +7,10 @@ use std::fmt::{Display, Error, Formatter};
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::prelude::*;
-use std::sync::{Mutex, Arc};
 use gtk::{Application, ApplicationWindow, DrawingArea};
 use std::f64::consts::PI;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct PolarCell {
@@ -389,7 +390,7 @@ pub fn draw_polar_pathfind(
     cr.restore();
 }
 
-pub fn draw_polar_grid(img: &gtk::DrawingArea, signal_handler: Arc<Mutex<bool>>, on_value: bool) {
+pub fn draw_polar_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
     let mut rng = rand::thread_rng();
     let actual_ring_height = 20;
     let mut g_polar = CircularGrid::new(10);
@@ -398,8 +399,7 @@ pub fn draw_polar_grid(img: &gtk::DrawingArea, signal_handler: Arc<Mutex<bool>>,
 
     let clone = g_polar.clone();
     img.connect_draw(move |w, cr| {
-        let bool_val = signal_handler.lock().unwrap();
-        if *bool_val == on_value {
+        if signal_handler.load(Ordering::Relaxed) == on_value {
             draw_polar_pathfind(w, cr, &clone, &step_state, actual_ring_height);
             draw_polar_maze(w, cr, &g_polar, actual_ring_height);
         }

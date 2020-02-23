@@ -3,11 +3,12 @@ use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
 use crate::solve::solve_with_longest_path;
 use crate::solve::DijkstraStep;
 use cairo::Context;
-use std::sync::{Mutex, Arc};
 use gtk::{Application, ApplicationWindow, DrawingArea};
 use std::collections::HashSet;
 use std::f64::consts::PI;
 use std::fmt::{Display, Error, Formatter};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use gtk::prelude::*;
 
@@ -370,7 +371,11 @@ pub fn draw_pathfind(
     cr.restore();
 }
 
-pub fn draw_rectangle_grid(img: &gtk::DrawingArea, signal_handler: Arc<Mutex<bool>>, on_value: bool) {
+pub fn draw_rectangle_grid(
+    img: &gtk::DrawingArea,
+    signal_handler: Arc<AtomicUsize>,
+    on_value: usize,
+) {
     let mut g = RectangleGrid::new(25, 25);
     let mut rng = rand::thread_rng();
 
@@ -380,15 +385,14 @@ pub fn draw_rectangle_grid(img: &gtk::DrawingArea, signal_handler: Arc<Mutex<boo
     //    hunt_and_kill(&mut g, &mut rng);
     recursive_backtracker(&mut g, &mut rng);
 
-
     let g_copy = g.clone();
     let cellsize = 10.;
 
     let step_state = solve_with_longest_path(&g);
 
     img.connect_draw(move |w, cr| {
-        let bool_val = signal_handler.lock().unwrap();
-        if *bool_val == on_value {
+        // let bool_val = signal_handler;
+        if signal_handler.load(Ordering::Relaxed) == on_value {
             draw_pathfind(w, cr, &g, &step_state, cellsize);
             draw_maze(w, cr, &g_copy, cellsize);
         }
@@ -408,7 +412,6 @@ pub fn build_ui(app: &Application, img: &gtk::DrawingArea, button: &gtk::Button)
     vbox.add(button);
     img.set_vexpand(true);
     img.set_hexpand(true);
-    
 
     window.add(&vbox);
     window.show_all();
