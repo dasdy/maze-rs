@@ -363,7 +363,7 @@ pub fn draw_rectangle_grid(
     signal_handler: Arc<AtomicUsize>,
     on_value: usize,
 ) {
-    let mut g = RectangleGrid::new(25, 25);
+    let mut g = RectangleGrid::new(70, 70);
     let mut rng = rand::thread_rng();
 
     //    sidewinder(&mut g, &mut rng);

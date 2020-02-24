@@ -319,7 +319,7 @@ pub fn draw_pathfind(
 }
 
 pub fn draw_hex_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
-    let mut g = HexagonalGrid::new(15, 15);
+    let mut g = HexagonalGrid::new(50, 50);
     let mut rng = rand::thread_rng();
     recursive_backtracker(&mut g, &mut rng);
 

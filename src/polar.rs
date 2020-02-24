@@ -394,7 +394,7 @@ pub fn draw_polar_pathfind(
 pub fn draw_polar_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
     let mut rng = rand::thread_rng();
     let actual_ring_height = 20;
-    let mut g_polar = CircularGrid::new(10);
+    let mut g_polar = CircularGrid::new(40);
     recursive_backtracker(&mut g_polar, &mut rng);
     let step_state = solve_with_longest_path(&g_polar);
 

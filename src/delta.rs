@@ -287,7 +287,7 @@ pub fn draw_pathfind(
 }
 
 pub fn draw_delta_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
-    let mut g = DeltaGrid::new(15, 20);
+    let mut g = DeltaGrid::new(45, 60);
     let mut rng = rand::thread_rng();
 
     recursive_backtracker(&mut g, &mut rng);
