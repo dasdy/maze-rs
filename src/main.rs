@@ -11,6 +11,7 @@ use gtk::prelude::*;
 use gtk::{ApplicationWindow, Button};
 
 mod delta;
+mod draw_utils;
 mod generate;
 mod grid;
 mod hexagonal;
@@ -39,7 +40,12 @@ fn create_gtk_app() {
         img.set_hexpand(true);
         let signal_handler: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
 
-        rectangle::draw_rectangle_grid(&img, signal_handler.clone(), 0);
+        draw_utils::draw_grid(
+            &img,
+            signal_handler.clone(),
+            &mut rectangle::RectangleGrid::new(70, 70),
+            0,
+        );
         let signal_handler_1_clone = signal_handler.clone();
         let button = Button::new_with_label("draw rectangle maze");
         button.connect_clicked(move |_| {
@@ -49,7 +55,12 @@ fn create_gtk_app() {
         container.add(&button);
 
         let img_clone_2 = img.clone();
-        polar::draw_polar_grid(&img_clone_2, signal_handler.clone(), 1);
+        draw_utils::draw_grid(
+            &img_clone_2,
+            signal_handler.clone(),
+            &mut polar::CircularGrid::new(40),
+            1,
+        );
         let button_polar = Button::new_with_label("draw polar maze");
         let signal_handler_2_clone = signal_handler.clone();
         button_polar.connect_clicked(move |_| {
@@ -60,7 +71,12 @@ fn create_gtk_app() {
 
         let img_clone_3 = img.clone();
         let button_hex = Button::new_with_label("draw hex maze");
-        hexagonal::draw_hex_grid(&img_clone_3, signal_handler.clone(), 2);
+        draw_utils::draw_grid(
+            &img_clone_3,
+            signal_handler.clone(),
+            &mut hexagonal::HexagonalGrid::new(50, 50),
+            2,
+        );
         let signal_handler_3_clone = signal_handler.clone();
         button_hex.connect_clicked(move |_| {
             signal_handler_3_clone.store(2, Ordering::Relaxed);
@@ -70,7 +86,12 @@ fn create_gtk_app() {
 
         let img_clone_4 = img.clone();
         let button_delta = Button::new_with_label("draw delta maze");
-        delta::draw_delta_grid(&img_clone_4, signal_handler.clone(), 3);
+        draw_utils::draw_grid(
+            &img_clone_4,
+            signal_handler.clone(),
+            &mut delta::DeltaGrid::new(45, 60),
+            3,
+        );
         button_delta.connect_clicked(move |_| {
             signal_handler.store(3, Ordering::Relaxed);
             img_clone_4.queue_draw();

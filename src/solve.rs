@@ -76,7 +76,7 @@ impl DijkstraStep {
     }
 }
 
-pub fn solve_with_longest_path<T: AbstractCell>(g: &dyn AbstractGrid<T>) -> DijkstraStep {
+pub fn solve_with_longest_path<C: AbstractCell, T: AbstractGrid<C>>(g: &T) -> DijkstraStep {
     let start = 0;
     // solve initially from random point
     let mut result = DijkstraStep::initial(g, start);

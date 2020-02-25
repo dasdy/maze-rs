@@ -1,16 +1,13 @@
-use crate::generate::recursive_backtracker;
 use crate::grid::{AbstractCell, AbstractGrid};
-use crate::solve::solve_with_longest_path;
 use std::collections::HashSet;
 use std::fmt::{Display, Error, Formatter};
 
+use crate::draw_utils::GtkDrawable;
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::prelude::*;
 use gtk::DrawingArea;
 use std::f64::consts::PI;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct PolarCell {
@@ -225,185 +222,166 @@ impl CircularGrid {
     }
 }
 
-pub fn draw_polar_maze(
-    w: &DrawingArea,
-    cr: &Context,
-    g_polar: &CircularGrid,
-    actual_ring_height: usize,
-) {
-    let scalex = w.get_allocated_width() as f64 / (g_polar.height * actual_ring_height * 2) as f64;
-    let scaley = w.get_allocated_height() as f64 / (g_polar.height * actual_ring_height * 2) as f64;
-    cr.scale(scalex, scaley);
-    cr.set_line_width(1.0);
+impl GtkDrawable<PolarCell> for CircularGrid {
+    fn draw_maze(&self, w: &DrawingArea, cr: &Context, actual_ring_height: f64) {
+        let scalex =
+            w.get_allocated_width() as f64 / (self.height as f64 * actual_ring_height * 2.);
+        let scaley =
+            w.get_allocated_height() as f64 / (self.height as f64 * actual_ring_height * 2.);
+        cr.scale(scalex, scaley);
+        cr.set_line_width(1.0);
 
-    let center_x = g_polar.height as f64 * actual_ring_height as f64;
-    let center_y = center_x;
-    let ring_height = actual_ring_height as f64;
+        let center_x = self.height as f64 * actual_ring_height as f64;
+        let center_y = center_x;
+        let ring_height = actual_ring_height as f64;
 
-    cr.arc(
-        center_x,
-        center_y,
-        ring_height * g_polar.height as f64,
-        0.,
-        2. * PI,
-    );
-    cr.stroke();
-    for i in 0..g_polar.len() {
-        if i == 0 {
-            continue;
-        }
-        let cell = g_polar.cell(i);
-        let inward = g_polar.inward_ix(i).unwrap();
-        let theta = 2. * PI / (cell.columns as f64);
-        let inner_r = ring_height * cell.row() as f64;
-        let outer_r = ring_height * (cell.row() + 1) as f64;
-        let theta_cw = theta * (cell.col() as f64);
-        let theta_ccw = theta * ((cell.col() + 1) as f64);
-        if !cell.links().contains(&inward) {
-            cr.arc(center_x, center_y, inner_r, theta_cw, theta_ccw);
-            cr.stroke();
-        }
-
-        let east = g_polar.cw_ix(i);
-
-        if !cell.links.contains(&east) {
-            let cx = center_x + inner_r * theta_ccw.cos();
-            let dx = center_x + outer_r * theta_ccw.cos();
-            let cy = center_x + inner_r * theta_ccw.sin();
-            let dy = center_x + outer_r * theta_ccw.sin();
-            cr.move_to(cx, cy);
-            cr.line_to(dx, dy);
-            cr.stroke();
-        }
-    }
-}
-
-pub fn draw_polar_pathfind(
-    w: &DrawingArea,
-    cr: &Context,
-    g: &CircularGrid,
-    step_state: &DijkstraStep,
-    cellsize: usize,
-) {
-    cr.save();
-    let scalex = w.get_allocated_width() as f64 / (g.height * cellsize * 2) as f64;
-    let scaley = w.get_allocated_height() as f64 / (g.height * cellsize * 2) as f64;
-    cr.scale(scalex, scaley);
-    cr.set_line_width(cellsize as f64 + 1.); // 1. to not create gaps between rows
-    let center_x = g.height as f64 * cellsize as f64;
-    let center_y = center_x;
-
-    let mut max_idx = 0;
-    let mut min_idx = 0;
-    let mut max_length = step_state.cell_weights[max_idx].path_length;
-    let mut min_length = max_length;
-    for (i, c) in step_state.cell_weights.iter().enumerate() {
-        if c.path_length > max_length {
-            max_length = c.path_length;
-            max_idx = i;
-        }
-        if c.path_length < min_length {
-            min_length = c.path_length;
-            min_idx = i;
-        }
-    }
-
-    // returns inner radius, theta1, theta2
-    let pixcoord = |ix: usize| -> (f64, f64, f64) {
-        let row = g.cell(ix).row() as f64;
-        let col = g.cell(ix).col() as f64;
-        let total_cols = g.cell(ix).columns as f64;
-        let theta = 2. * PI / total_cols;
-        let inner_r = (cellsize as f64) * (row + 0.5);
-
-        (inner_r, theta * col, theta * (col + 1.01)) // 1.01 to not create gaps between clockwise neighbours
-    };
-
-    for (i, c) in step_state.cell_weights.iter().enumerate() {
-        let intensity = (max_length - c.path_length) as f64 / max_length as f64;
-        let dark = intensity;
-        let bright = 0.5 + intensity / 2.;
-        cr.set_source_rgb(dark, bright, dark);
-        // cr.set_source_rgb(1., 1., 0.);
-        let (r, theta1, theta2) = pixcoord(i);
-        cr.arc(center_x, center_y, r, theta1, theta2);
+        cr.arc(
+            center_x,
+            center_y,
+            ring_height * self.height as f64,
+            0.,
+            2. * PI,
+        );
         cr.stroke();
+        for i in 0..self.len() {
+            if i == 0 {
+                continue;
+            }
+            let cell = self.cell(i);
+            let inward = self.inward_ix(i).unwrap();
+            let theta = 2. * PI / (cell.columns as f64);
+            let inner_r = ring_height * cell.row() as f64;
+            let outer_r = ring_height * (cell.row() + 1) as f64;
+            let theta_cw = theta * (cell.col() as f64);
+            let theta_ccw = theta * ((cell.col() + 1) as f64);
+            if !cell.links().contains(&inward) {
+                cr.arc(center_x, center_y, inner_r, theta_cw, theta_ccw);
+                cr.stroke();
+            }
+
+            let east = self.cw_ix(i);
+
+            if !cell.links.contains(&east) {
+                let cx = center_x + inner_r * theta_ccw.cos();
+                let dx = center_x + outer_r * theta_ccw.cos();
+                let cy = center_x + inner_r * theta_ccw.sin();
+                let dy = center_x + outer_r * theta_ccw.sin();
+                cr.move_to(cx, cy);
+                cr.line_to(dx, dy);
+                cr.stroke();
+            }
+        }
     }
+    fn draw_pathfind(
+        &self,
+        w: &DrawingArea,
+        cr: &Context,
+        step_state: &DijkstraStep,
+        cellsize: f64,
+    ) {
+        cr.save();
+        let scalex = w.get_allocated_width() as f64 / (self.height as f64 * 2. * cellsize);
+        let scaley = w.get_allocated_height() as f64 / (self.height as f64 * 2. * cellsize);
+        cr.scale(scalex, scaley);
+        cr.set_line_width(cellsize + 1.); // 1. to not create gaps between rows
+        let center_x = self.height as f64 * cellsize;
+        let center_y = center_x;
 
-    let connect = |ix1: usize, ix2: usize| {
-        let r1 = g.cell(ix1).row();
-        let r2 = g.cell(ix2).row();
-        let theta = 2. * PI / (g.cell(ix1).columns as f64);
+        let mut max_idx = 0;
+        let mut min_idx = 0;
+        let mut max_length = step_state.cell_weights[max_idx].path_length;
+        let mut min_length = max_length;
+        for (i, c) in step_state.cell_weights.iter().enumerate() {
+            if c.path_length > max_length {
+                max_length = c.path_length;
+                max_idx = i;
+            }
+            if c.path_length < min_length {
+                min_length = c.path_length;
+                min_idx = i;
+            }
+        }
 
-        if r1 == r2 {
-            let col1 = g.cell(ix1).col;
-            let col2 = g.cell(ix2).col;
-            let total = g.cell(ix1).columns;
+        // returns inner radius, theta1, theta2
+        let pixcoord = |ix: usize| -> (f64, f64, f64) {
+            let row = self.cell(ix).row() as f64;
+            let col = self.cell(ix).col() as f64;
+            let total_cols = self.cell(ix).columns as f64;
+            let theta = 2. * PI / total_cols;
+            let inner_r = (cellsize as f64) * (row + 0.5);
 
-            let a1 = theta * (0.5 + col1 as f64);
-            let a2 = theta * (0.5 + col2 as f64);
-            // when last and first columns are connected, should draw counter-clockwise instead of clockwise
-            let (a_from, a_to) =
-                if usize::min(col1, col2) == 0 && usize::max(col1, col2) == total - 1 {
-                    (f64::max(a2, a1), f64::min(a2, a1))
-                } else {
-                    (f64::min(a2, a1), f64::max(a2, a1))
-                };
+            (inner_r, theta * col, theta * (col + 1.01)) // 1.01 to not create gaps between clockwise neighbours
+        };
 
-            cr.arc(
-                center_x,
-                center_y,
-                (r1 as f64 + 0.5) * (cellsize as f64),
-                a_from,
-                a_to,
-            );
-            cr.stroke();
-        } else {
-            let start_r = (0.5 + r1 as f64) * (cellsize as f64);
-            let end_r = (0.5 + r2 as f64) * (cellsize as f64);
-            let theta2 = 2. * PI / (g.cell(ix2).columns as f64);
-            let a = theta * (0.5 + g.cell(ix1).col as f64);
-            let a2 = theta2 * (0.5 + g.cell(ix2).col as f64);
-            let cx = center_x + start_r * a.cos();
-            let dx = center_x + end_r * a2.cos();
-            let cy = center_x + start_r * a.sin();
-            let dy = center_x + end_r * a2.sin();
-            cr.move_to(cx, cy);
-            cr.line_to(dx, dy);
+        for (i, c) in step_state.cell_weights.iter().enumerate() {
+            let intensity = (max_length - c.path_length) as f64 / max_length as f64;
+            let dark = intensity;
+            let bright = 0.5 + intensity / 2.;
+            cr.set_source_rgb(dark, bright, dark);
+            // cr.set_source_rgb(1., 1., 0.);
+            let (r, theta1, theta2) = pixcoord(i);
+            cr.arc(center_x, center_y, r, theta1, theta2);
             cr.stroke();
         }
-    };
 
-    if step_state.cell_weights[max_idx].parent >= 0 {
-        let mut cur_cell = max_idx as i32;
-        cr.set_source_rgb(1., 0., 0.);
-        cr.set_line_width(4.0);
-        while cur_cell != (min_idx as i32) {
-            connect(
-                cur_cell as usize,
-                step_state.cell_weights[cur_cell as usize].parent as usize,
-            );
-            cur_cell = step_state.cell_weights[cur_cell as usize].parent;
+        let connect = |ix1: usize, ix2: usize| {
+            let r1 = self.cell(ix1).row();
+            let r2 = self.cell(ix2).row();
+            let theta = 2. * PI / (self.cell(ix1).columns as f64);
+
+            if r1 == r2 {
+                let col1 = self.cell(ix1).col;
+                let col2 = self.cell(ix2).col;
+                let total = self.cell(ix1).columns;
+
+                let a1 = theta * (0.5 + col1 as f64);
+                let a2 = theta * (0.5 + col2 as f64);
+                // when last and first columns are connected, should draw counter-clockwise instead of clockwise
+                let (a_from, a_to) =
+                    if usize::min(col1, col2) == 0 && usize::max(col1, col2) == total - 1 {
+                        (f64::max(a2, a1), f64::min(a2, a1))
+                    } else {
+                        (f64::min(a2, a1), f64::max(a2, a1))
+                    };
+
+                cr.arc(
+                    center_x,
+                    center_y,
+                    (r1 as f64 + 0.5) * (cellsize as f64),
+                    a_from,
+                    a_to,
+                );
+                cr.stroke();
+            } else {
+                let start_r = (0.5 + r1 as f64) * (cellsize as f64);
+                let end_r = (0.5 + r2 as f64) * (cellsize as f64);
+                let theta2 = 2. * PI / (self.cell(ix2).columns as f64);
+                let a = theta * (0.5 + self.cell(ix1).col as f64);
+                let a2 = theta2 * (0.5 + self.cell(ix2).col as f64);
+                let cx = center_x + start_r * a.cos();
+                let dx = center_x + end_r * a2.cos();
+                let cy = center_x + start_r * a.sin();
+                let dy = center_x + end_r * a2.sin();
+                cr.move_to(cx, cy);
+                cr.line_to(dx, dy);
+                cr.stroke();
+            }
+        };
+
+        if step_state.cell_weights[max_idx].parent >= 0 {
+            let mut cur_cell = max_idx as i32;
+            cr.set_source_rgb(1., 0., 0.);
+            cr.set_line_width(4.0);
+            while cur_cell != (min_idx as i32) {
+                connect(
+                    cur_cell as usize,
+                    step_state.cell_weights[cur_cell as usize].parent as usize,
+                );
+                cur_cell = step_state.cell_weights[cur_cell as usize].parent;
+            }
+            cr.stroke();
         }
-        cr.stroke();
+
+        cr.restore();
     }
-
-    cr.restore();
-}
-
-pub fn draw_polar_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
-    let mut rng = rand::thread_rng();
-    let actual_ring_height = 20;
-    let mut g_polar = CircularGrid::new(40);
-    recursive_backtracker(&mut g_polar, &mut rng);
-    let step_state = solve_with_longest_path(&g_polar);
-
-    let clone = g_polar.clone();
-    img.connect_draw(move |w, cr| {
-        if signal_handler.load(Ordering::Relaxed) == on_value {
-            draw_polar_pathfind(w, cr, &clone, &step_state, actual_ring_height);
-            draw_polar_maze(w, cr, &g_polar, actual_ring_height);
-        }
-        gtk::Inhibit(false)
-    });
 }

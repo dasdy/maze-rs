@@ -1,13 +1,10 @@
-use crate::generate::recursive_backtracker;
+use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid};
 use crate::gtk::WidgetExt;
-use crate::solve::solve_with_longest_path;
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::DrawingArea;
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct HexagonalCell {
@@ -208,131 +205,113 @@ fn hex_points(row: usize, col: usize, cellsize: f64) -> HexagonalCoords {
     }
 }
 
-pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &HexagonalGrid, cellsize: f64) {
-    cr.save();
-    let a = cellsize / 2.;
-    let b = cellsize * 3f64.sqrt() / 2.;
+impl GtkDrawable<HexagonalCell> for HexagonalGrid {
+    fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
+        cr.save();
+        let a = cellsize / 2.;
+        let b = cellsize * 3f64.sqrt() / 2.;
 
-    let canvas_width = 3. * g.width as f64 * a + a;
-    let canvas_height = 2. * g.height as f64 * b + b + 0.1 * cellsize;
+        let canvas_width = 3. * self.width as f64 * a + a;
+        let canvas_height = 2. * self.height as f64 * b + b + 0.1 * cellsize;
 
-    let scalex = w.get_allocated_width() as f64 / canvas_width;
-    let scaley = w.get_allocated_height() as f64 / canvas_height;
-    cr.scale(scalex, scaley);
+        let scalex = w.get_allocated_width() as f64 / canvas_width;
+        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        cr.scale(scalex, scaley);
 
-    for ix in 0..g.len() {
-        let cur_cell = g.cell(ix);
-        let draw_line = |item: &Option<usize>, end: (f64, f64)| match item {
-            Some(r_idx) if (!cur_cell.links().contains(r_idx)) => cr.line_to(end.0, end.1),
-            None => cr.line_to(end.0, end.1),
-            _ => cr.move_to(end.0, end.1),
+        for ix in 0..self.len() {
+            let cur_cell = self.cell(ix);
+            let draw_line = |item: &Option<usize>, end: (f64, f64)| match item {
+                Some(r_idx) if (!cur_cell.links().contains(r_idx)) => cr.line_to(end.0, end.1),
+                None => cr.line_to(end.0, end.1),
+                _ => cr.move_to(end.0, end.1),
+            };
+
+            let coords = hex_points(cur_cell.row(), cur_cell.col(), cellsize);
+
+            cr.move_to(coords.x_fw, coords.y_m);
+            draw_line(&self.southwest_ix(ix), (coords.x_nw, coords.y_s));
+            draw_line(&self.south_ix(ix), (coords.x_ne, coords.y_s));
+            draw_line(&self.southeast_ix(ix), (coords.x_fe, coords.y_m));
+            draw_line(&self.northeast_ix(ix), (coords.x_ne, coords.y_n));
+            draw_line(&self.north_ix(ix), (coords.x_nw, coords.y_n));
+            draw_line(&self.northwest_ix(ix), (coords.x_fw, coords.y_m));
+            cr.stroke();
+        }
+
+        cr.restore();
+    }
+
+    fn draw_pathfind(
+        &self,
+        w: &DrawingArea,
+        cr: &Context,
+        step_state: &DijkstraStep,
+        cellsize: f64,
+    ) {
+        cr.save();
+        let a = cellsize / 2.;
+        let b = cellsize * 3f64.sqrt() / 2.;
+
+        let canvas_width = 3. * self.width as f64 * a + a;
+        let canvas_height = 2. * self.height as f64 * b + b + 0.1 * cellsize;
+
+        let scalex = w.get_allocated_width() as f64 / canvas_width;
+        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        cr.scale(scalex, scaley);
+
+        let mut max_idx = 0;
+        let mut min_idx = 0;
+        let mut max_length = step_state.cell_weights[max_idx].path_length;
+        let mut min_length = max_length;
+        for (i, c) in step_state.cell_weights.iter().enumerate() {
+            if c.path_length > max_length {
+                max_length = c.path_length;
+                max_idx = i;
+            }
+            if c.path_length < min_length {
+                min_length = c.path_length;
+                min_idx = i;
+            }
+        }
+
+        let coords = |ix: usize| {
+            let row = self.cell(ix as usize).row();
+            let col = self.cell(ix as usize).col();
+            hex_points(row, col, cellsize)
         };
 
-        let coords = hex_points(cur_cell.row(), cur_cell.col(), cellsize);
+        for (i, c) in step_state.cell_weights.iter().enumerate() {
+            let intensity = (max_length - c.path_length) as f64 / max_length as f64;
+            let dark = intensity;
+            let bright = 0.5 + intensity / 2.;
+            cr.set_source_rgb(dark, bright, dark);
+            cr.set_line_width(0.1);
+            let coords = coords(i);
 
-        cr.move_to(coords.x_fw, coords.y_m);
-        draw_line(&g.southwest_ix(ix), (coords.x_nw, coords.y_s));
-        draw_line(&g.south_ix(ix), (coords.x_ne, coords.y_s));
-        draw_line(&g.southeast_ix(ix), (coords.x_fe, coords.y_m));
-        draw_line(&g.northeast_ix(ix), (coords.x_ne, coords.y_n));
-        draw_line(&g.north_ix(ix), (coords.x_nw, coords.y_n));
-        draw_line(&g.northwest_ix(ix), (coords.x_fw, coords.y_m));
-        cr.stroke();
-    }
-
-    cr.restore();
-}
-
-pub fn draw_pathfind(
-    w: &DrawingArea,
-    cr: &Context,
-    g: &HexagonalGrid,
-    step_state: &DijkstraStep,
-    cellsize: f64,
-) {
-    cr.save();
-    let a = cellsize / 2.;
-    let b = cellsize * 3f64.sqrt() / 2.;
-
-    let canvas_width = 3. * g.width as f64 * a + a;
-    let canvas_height = 2. * g.height as f64 * b + b + 0.1 * cellsize;
-
-    let scalex = w.get_allocated_width() as f64 / canvas_width;
-    let scaley = w.get_allocated_height() as f64 / canvas_height;
-    cr.scale(scalex, scaley);
-
-    let mut max_idx = 0;
-    let mut min_idx = 0;
-    let mut max_length = step_state.cell_weights[max_idx].path_length;
-    let mut min_length = max_length;
-    for (i, c) in step_state.cell_weights.iter().enumerate() {
-        if c.path_length > max_length {
-            max_length = c.path_length;
-            max_idx = i;
+            cr.move_to(coords.x_fw, coords.y_m);
+            cr.line_to(coords.x_nw, coords.y_s);
+            cr.line_to(coords.x_ne, coords.y_s);
+            cr.line_to(coords.x_fe, coords.y_m);
+            cr.line_to(coords.x_ne, coords.y_n);
+            cr.line_to(coords.x_nw, coords.y_n);
+            cr.line_to(coords.x_fw, coords.y_m);
+            cr.fill();
         }
-        if c.path_length < min_length {
-            min_length = c.path_length;
-            min_idx = i;
+
+        if step_state.cell_weights[max_idx].parent >= 0 {
+            let mut cur_cell = max_idx;
+            cr.set_source_rgb(1., 0., 0.);
+            cr.set_line_width(4.0);
+            let coords_1 = coords(cur_cell);
+            cr.move_to(coords_1.cx, coords_1.cy);
+            while cur_cell != (min_idx as usize) {
+                let coords_2 = coords(step_state.cell_weights[cur_cell].parent as usize);
+                cr.line_to(coords_2.cx, coords_2.cy);
+                cur_cell = step_state.cell_weights[cur_cell].parent as usize;
+            }
+            cr.stroke();
         }
+
+        cr.restore();
     }
-
-    let coords = |ix: usize| {
-        let row = g.cell(ix as usize).row();
-        let col = g.cell(ix as usize).col();
-        hex_points(row, col, cellsize)
-    };
-
-    for (i, c) in step_state.cell_weights.iter().enumerate() {
-        let intensity = (max_length - c.path_length) as f64 / max_length as f64;
-        let dark = intensity;
-        let bright = 0.5 + intensity / 2.;
-        cr.set_source_rgb(dark, bright, dark);
-        cr.set_line_width(0.1);
-        // cr.set_source_rgb(1., 1., 0.);
-        let coords = coords(i);
-
-        cr.move_to(coords.x_fw, coords.y_m);
-        cr.line_to(coords.x_nw, coords.y_s);
-        cr.line_to(coords.x_ne, coords.y_s);
-        cr.line_to(coords.x_fe, coords.y_m);
-        cr.line_to(coords.x_ne, coords.y_n);
-        cr.line_to(coords.x_nw, coords.y_n);
-        cr.line_to(coords.x_fw, coords.y_m);
-        cr.fill();
-    }
-
-    if step_state.cell_weights[max_idx].parent >= 0 {
-        let mut cur_cell = max_idx;
-        cr.set_source_rgb(1., 0., 0.);
-        cr.set_line_width(4.0);
-        let coords_1 = coords(cur_cell);
-        cr.move_to(coords_1.cx, coords_1.cy);
-        while cur_cell != (min_idx as usize) {
-            let coords_2 = coords(step_state.cell_weights[cur_cell].parent as usize);
-            cr.line_to(coords_2.cx, coords_2.cy);
-            cur_cell = step_state.cell_weights[cur_cell].parent as usize;
-        }
-        cr.stroke();
-    }
-
-    cr.restore();
-}
-
-pub fn draw_hex_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
-    let mut g = HexagonalGrid::new(50, 50);
-    let mut rng = rand::thread_rng();
-    recursive_backtracker(&mut g, &mut rng);
-
-    let g_copy = g.clone();
-    let cellsize = 10.;
-
-    let step_state = solve_with_longest_path(&g);
-
-    img.connect_draw(move |w, cr| {
-        if signal_handler.load(Ordering::Relaxed) == on_value {
-            draw_pathfind(w, cr, &g, &step_state, cellsize);
-            draw_maze(w, cr, &g_copy, cellsize);
-        }
-        gtk::Inhibit(false)
-    });
 }

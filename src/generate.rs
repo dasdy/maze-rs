@@ -106,8 +106,8 @@ pub fn hunt_and_kill<T: AbstractCell>(g: &mut dyn AbstractGrid<T>, r: &mut rand:
     }
 }
 
-pub fn recursive_backtracker<T: AbstractCell>(
-    g: &mut dyn AbstractGrid<T>,
+pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
+    g: &mut T,
     r: &mut rand::rngs::ThreadRng,
 ) {
     let current_idx = r.gen_range(0, g.len());

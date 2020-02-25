@@ -1,13 +1,10 @@
-use crate::generate::recursive_backtracker;
+use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
 use crate::gtk::WidgetExt;
-use crate::solve::solve_with_longest_path;
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::DrawingArea;
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct DeltaCell {
@@ -180,129 +177,111 @@ fn delta_points(row: usize, col: usize, cellsize: f64) -> DeltaCellPoints {
     }
 }
 
-pub fn draw_maze(w: &DrawingArea, cr: &Context, g: &DeltaGrid, cellsize: f64) {
-    cr.save();
+impl GtkDrawable<DeltaCell> for DeltaGrid {
+    fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
+        cr.save();
 
-    let canvas_width = (1 + g.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
-    let canvas_height = g.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
+        let canvas_width = (1 + self.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
+        let canvas_height = self.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
 
-    let scalex = w.get_allocated_width() as f64 / canvas_width;
-    let scaley = w.get_allocated_height() as f64 / canvas_height;
-    cr.scale(scalex, scaley);
+        let scalex = w.get_allocated_width() as f64 / canvas_width;
+        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        cr.scale(scalex, scaley);
 
-    for ix in 0..g.len() {
-        let cur_cell = g.cell(ix);
-        let draw_line = |item: &Option<usize>, end: (f64, f64)| match item {
-            Some(r_idx) if (!cur_cell.links().contains(r_idx)) => cr.line_to(end.0, end.1),
-            None => cr.line_to(end.0, end.1),
-            _ => cr.move_to(end.0, end.1),
+        for ix in 0..self.len() {
+            let cur_cell = self.cell(ix);
+            let draw_line = |item: &Option<usize>, end: (f64, f64)| match item {
+                Some(r_idx) if (!cur_cell.links().contains(r_idx)) => cr.line_to(end.0, end.1),
+                None => cr.line_to(end.0, end.1),
+                _ => cr.move_to(end.0, end.1),
+            };
+
+            let coords = delta_points(cur_cell.row(), cur_cell.col(), cellsize);
+
+            cr.move_to(coords.westx, coords.basey);
+            draw_line(&self.west_ix(ix), (coords.midx, coords.apexy));
+            draw_line(&self.east_ix(ix), (coords.eastx, coords.basey));
+
+            let isup = is_up(cur_cell.row(), cur_cell.col());
+            let no_south = isup && self.south_ix(ix).is_none();
+            let not_linked = !isup
+                && self
+                    .north_ix(ix)
+                    .map(|r_idx| !cur_cell.links().contains(&r_idx))
+                    .unwrap_or(false);
+            if no_south || not_linked {
+                cr.line_to(coords.westx, coords.basey);
+            }
+            cr.stroke();
+        }
+
+        cr.restore();
+    }
+
+    fn draw_pathfind(
+        &self,
+        w: &DrawingArea,
+        cr: &Context,
+        step_state: &DijkstraStep,
+        cellsize: f64,
+    ) {
+        cr.save();
+        let canvas_width = (1 + self.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
+        let canvas_height = self.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
+
+        let scalex = w.get_allocated_width() as f64 / canvas_width;
+        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        cr.scale(scalex, scaley);
+
+        let mut max_idx = 0;
+        let mut min_idx = 0;
+        let mut max_length = step_state.cell_weights[max_idx].path_length;
+        let mut min_length = max_length;
+        for (i, c) in step_state.cell_weights.iter().enumerate() {
+            if c.path_length > max_length {
+                max_length = c.path_length;
+                max_idx = i;
+            }
+            if c.path_length < min_length {
+                min_length = c.path_length;
+                min_idx = i;
+            }
+        }
+
+        let coords = |ix: usize| {
+            let row = self.cell(ix as usize).row();
+            let col = self.cell(ix as usize).col();
+            delta_points(row, col, cellsize)
         };
 
-        let coords = delta_points(cur_cell.row(), cur_cell.col(), cellsize);
+        for (i, c) in step_state.cell_weights.iter().enumerate() {
+            let intensity = (max_length - c.path_length) as f64 / max_length as f64;
+            let dark = intensity;
+            let bright = 0.5 + intensity / 2.;
+            cr.set_source_rgb(dark, bright, dark);
+            cr.set_line_width(0.1);
+            let coords = coords(i);
 
-        cr.move_to(coords.westx, coords.basey);
-        draw_line(&g.west_ix(ix), (coords.midx, coords.apexy));
-        draw_line(&g.east_ix(ix), (coords.eastx, coords.basey));
-
-        let isup = is_up(cur_cell.row(), cur_cell.col());
-        let no_south = isup && g.south_ix(ix).is_none();
-        let not_linked = !isup
-            && g.north_ix(ix)
-                .map(|r_idx| !cur_cell.links().contains(&r_idx))
-                .unwrap_or(false);
-        if no_south || not_linked {
-            cr.line_to(coords.westx, coords.basey);
+            cr.move_to(coords.westx, coords.basey);
+            cr.line_to(coords.midx, coords.apexy);
+            cr.line_to(coords.eastx, coords.basey);
+            cr.fill();
         }
-        cr.stroke();
+
+        if step_state.cell_weights[max_idx].parent >= 0 {
+            let mut cur_cell = max_idx;
+            cr.set_source_rgb(1., 0., 0.);
+            cr.set_line_width(1.0);
+            let coords_1 = coords(cur_cell);
+            cr.move_to(coords_1.cx, coords_1.cy);
+            while cur_cell != (min_idx as usize) {
+                let coords_2 = coords(step_state.cell_weights[cur_cell].parent as usize);
+                cr.line_to(coords_2.cx, coords_2.cy);
+                cur_cell = step_state.cell_weights[cur_cell].parent as usize;
+            }
+            cr.stroke();
+        }
+
+        cr.restore();
     }
-
-    cr.restore();
-}
-
-pub fn draw_pathfind(
-    w: &DrawingArea,
-    cr: &Context,
-    g: &DeltaGrid,
-    step_state: &DijkstraStep,
-    cellsize: f64,
-) {
-    cr.save();
-    let canvas_width = (1 + g.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
-    let canvas_height = g.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
-
-    let scalex = w.get_allocated_width() as f64 / canvas_width;
-    let scaley = w.get_allocated_height() as f64 / canvas_height;
-    cr.scale(scalex, scaley);
-
-    let mut max_idx = 0;
-    let mut min_idx = 0;
-    let mut max_length = step_state.cell_weights[max_idx].path_length;
-    let mut min_length = max_length;
-    for (i, c) in step_state.cell_weights.iter().enumerate() {
-        if c.path_length > max_length {
-            max_length = c.path_length;
-            max_idx = i;
-        }
-        if c.path_length < min_length {
-            min_length = c.path_length;
-            min_idx = i;
-        }
-    }
-
-    let coords = |ix: usize| {
-        let row = g.cell(ix as usize).row();
-        let col = g.cell(ix as usize).col();
-        delta_points(row, col, cellsize)
-    };
-
-    for (i, c) in step_state.cell_weights.iter().enumerate() {
-        let intensity = (max_length - c.path_length) as f64 / max_length as f64;
-        let dark = intensity;
-        let bright = 0.5 + intensity / 2.;
-        cr.set_source_rgb(dark, bright, dark);
-        cr.set_line_width(0.1);
-        let coords = coords(i);
-
-        cr.move_to(coords.westx, coords.basey);
-        cr.line_to(coords.midx, coords.apexy);
-        cr.line_to(coords.eastx, coords.basey);
-        cr.fill();
-    }
-
-    if step_state.cell_weights[max_idx].parent >= 0 {
-        let mut cur_cell = max_idx;
-        cr.set_source_rgb(1., 0., 0.);
-        cr.set_line_width(1.0);
-        let coords_1 = coords(cur_cell);
-        cr.move_to(coords_1.cx, coords_1.cy);
-        while cur_cell != (min_idx as usize) {
-            let coords_2 = coords(step_state.cell_weights[cur_cell].parent as usize);
-            cr.line_to(coords_2.cx, coords_2.cy);
-            cur_cell = step_state.cell_weights[cur_cell].parent as usize;
-        }
-        cr.stroke();
-    }
-
-    cr.restore();
-}
-
-pub fn draw_delta_grid(img: &gtk::DrawingArea, signal_handler: Arc<AtomicUsize>, on_value: usize) {
-    let mut g = DeltaGrid::new(45, 60);
-    let mut rng = rand::thread_rng();
-
-    recursive_backtracker(&mut g, &mut rng);
-
-    let g_copy = g.clone();
-    let cellsize = 10.;
-
-    let step_state = solve_with_longest_path(&g);
-
-    img.connect_draw(move |w, cr| {
-        // let bool_val = signal_handler;
-        if signal_handler.load(Ordering::Relaxed) == on_value {
-            draw_pathfind(w, cr, &g, &step_state, cellsize);
-            draw_maze(w, cr, &g_copy, cellsize);
-        }
-        gtk::Inhibit(false)
-    });
 }
