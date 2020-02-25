@@ -84,7 +84,7 @@ fn create_gtk_app() {
         });
         container.add(&button_hex);
 
-        let img_clone_4 = img.clone();
+        let img_clone_4 = img;
         let button_delta = Button::new_with_label("draw delta maze");
         draw_utils::draw_grid(
             &img_clone_4,

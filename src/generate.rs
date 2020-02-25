@@ -126,3 +126,23 @@ pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
         }
     }
 }
+
+pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng
+) {
+    for i in 0..g.len() {
+        let c = g.cell(i);
+        let c_links = c.links();
+        if c_links.len() == 1 {
+            if r.gen_range(0, 100) > 25 {
+                continue;
+            };
+            let ns: Vec<usize> = g.neighbours(i).iter().filter(|ix| {!c_links.contains(ix)}).copied().collect();
+            if !ns.is_empty() {
+                let new_neighbor = ns[r.gen_range(0, ns.len())];
+                g.link(i, new_neighbor);
+            }
+        }
+    }
+}

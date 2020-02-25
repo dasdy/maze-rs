@@ -1,4 +1,4 @@
-use crate::generate::recursive_backtracker;
+use crate::generate::{recursive_backtracker, braid};
 use crate::grid::{AbstractCell, AbstractGrid};
 use crate::gtk::WidgetExt;
 use crate::solve::{solve_with_longest_path, DijkstraStep};
@@ -24,6 +24,7 @@ pub fn draw_grid<C: AbstractCell, T: 'static + GtkDrawable<C> + Clone>(
 ) {
     let mut rng = rand::thread_rng();
     recursive_backtracker(g, &mut rng);
+    braid(g, &mut rng);
 
     let g_1 = g.clone();
     let cellsize = 10.;
