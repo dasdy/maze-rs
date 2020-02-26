@@ -129,12 +129,12 @@ pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
     }
 }
 
-pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
+pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng, chance: u8) {
     for i in 0..g.len() {
         let c = g.cell(i);
         let c_links = c.links();
         if c_links.len() == 1 {
-            if r.gen_range(0, 100) > 25 {
+            if r.gen_range(0, 255) > chance {
                 continue;
             };
             let ns: Vec<usize> = g

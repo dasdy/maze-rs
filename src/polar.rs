@@ -172,22 +172,11 @@ impl CircularGrid {
         }
     }
 
-    // #[allow(dead_code)]
-    // pub fn outward_ixs(&self, ix: usize) -> Vec<usize> {
-    //     self.cells[ix].outward.clone()
-    // }
-
     pub fn cw_ix(&self, ix: usize) -> usize {
         self.cells[ix].clockwise
     }
 
-    // #[allow(dead_code)]
-    // pub fn ccw_ix(&self, ix: usize) -> usize {
-    //     self.cells[ix].counter_clockwise
-    // }
-
     pub fn inward_ix(&self, ix: usize) -> Option<usize> {
-        // return self._ix_opt(row.wrapping_add(1), col);
         self.cells[ix].inward
     }
 
@@ -315,7 +304,6 @@ impl GtkDrawable<PolarCell> for CircularGrid {
             let dark = intensity;
             let bright = 0.5 + intensity / 2.;
             cr.set_source_rgb(dark, bright, dark);
-            // cr.set_source_rgb(1., 1., 0.);
             let (r, theta1, theta2) = pixcoord(i);
             cr.arc(center_x, center_y, r, theta1, theta2);
             cr.stroke();

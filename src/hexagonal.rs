@@ -1,51 +1,19 @@
 use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid, RectangularGrid};
 use crate::gtk::WidgetExt;
+use crate::rectangle::Cell;
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::DrawingArea;
-use std::collections::HashSet;
-
-#[derive(Clone)]
-pub struct HexagonalCell {
-    pub links: HashSet<usize>,
-    pub row: usize,
-    pub col: usize,
-}
-
-impl AbstractCell for HexagonalCell {
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn col(&self) -> usize {
-        self.col
-    }
-
-    fn links(&self) -> HashSet<usize> {
-        self.links.iter().cloned().collect()
-    }
-
-    fn link(&mut self, ix: usize) {
-        self.links.insert(ix);
-    }
-}
-
-impl HexagonalCell {
-    pub fn new(row: usize, col: usize) -> HexagonalCell {
-        let links = HashSet::new();
-        HexagonalCell { links, row, col }
-    }
-}
 
 #[derive(Clone)]
 pub struct HexagonalGrid {
     pub height: usize,
     pub width: usize,
-    pub cells: Vec<HexagonalCell>,
+    pub cells: Vec<Cell>,
 }
 
-impl AbstractGrid<HexagonalCell> for HexagonalGrid {
+impl AbstractGrid<Cell> for HexagonalGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
         let neighbors = &vec![
             self.north_ix(ix),
@@ -64,11 +32,11 @@ impl AbstractGrid<HexagonalCell> for HexagonalGrid {
         self.cells.len()
     }
 
-    fn cell(&self, ix: usize) -> &HexagonalCell {
+    fn cell(&self, ix: usize) -> &Cell {
         &self.cells[ix]
     }
 
-    fn cell_mut(&mut self, ix: usize) -> &mut HexagonalCell {
+    fn cell_mut(&mut self, ix: usize) -> &mut Cell {
         &mut self.cells[ix]
     }
 }
@@ -78,7 +46,7 @@ impl HexagonalGrid {
         let mut gridarr = Vec::new();
         for i in 0..rows {
             for j in 0..cols {
-                gridarr.push(HexagonalCell::new(i, j));
+                gridarr.push(Cell::new(i, j));
             }
         }
         HexagonalGrid {
@@ -200,7 +168,7 @@ fn hex_points(row: usize, col: usize, cellsize: f64) -> HexagonalCoords {
     }
 }
 
-impl GtkDrawable<HexagonalCell> for HexagonalGrid {
+impl GtkDrawable<Cell> for HexagonalGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
         cr.save();
         let a = cellsize / 2.;

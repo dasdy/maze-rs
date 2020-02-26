@@ -1,48 +1,16 @@
 use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, RectangularGrid};
 use crate::gtk::WidgetExt;
+use crate::rectangle::Cell;
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::DrawingArea;
-use std::collections::HashSet;
-
-#[derive(Clone)]
-pub struct DeltaCell {
-    pub links: HashSet<usize>,
-    pub row: usize,
-    pub col: usize,
-}
-
-impl AbstractCell for DeltaCell {
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn col(&self) -> usize {
-        self.col
-    }
-
-    fn links(&self) -> HashSet<usize> {
-        self.links.iter().cloned().collect()
-    }
-
-    fn link(&mut self, ix: usize) {
-        self.links.insert(ix);
-    }
-}
-
-impl DeltaCell {
-    pub fn new(row: usize, col: usize) -> DeltaCell {
-        let links = HashSet::new();
-        DeltaCell { links, row, col }
-    }
-}
 
 #[derive(Clone)]
 pub struct DeltaGrid {
     pub height: usize,
     pub width: usize,
-    pub cells: Vec<DeltaCell>,
+    pub cells: Vec<Cell>,
 }
 
 impl CompassDirections for DeltaGrid {
@@ -80,7 +48,7 @@ impl CompassDirections for DeltaGrid {
     }
 }
 
-impl AbstractGrid<DeltaCell> for DeltaGrid {
+impl AbstractGrid<Cell> for DeltaGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
         let neighbors = &vec![
             self.north_ix(ix),
@@ -96,11 +64,11 @@ impl AbstractGrid<DeltaCell> for DeltaGrid {
         self.cells.len()
     }
 
-    fn cell(&self, ix: usize) -> &DeltaCell {
+    fn cell(&self, ix: usize) -> &Cell {
         &self.cells[ix]
     }
 
-    fn cell_mut(&mut self, ix: usize) -> &mut DeltaCell {
+    fn cell_mut(&mut self, ix: usize) -> &mut Cell {
         &mut self.cells[ix]
     }
 }
@@ -110,7 +78,7 @@ impl DeltaGrid {
         let mut gridarr = Vec::new();
         for i in 0..rows {
             for j in 0..cols {
-                gridarr.push(DeltaCell::new(i, j));
+                gridarr.push(Cell::new(i, j));
             }
         }
         DeltaGrid {
@@ -171,7 +139,7 @@ fn delta_points(row: usize, col: usize, cellsize: f64) -> DeltaCellPoints {
     }
 }
 
-impl GtkDrawable<DeltaCell> for DeltaGrid {
+impl GtkDrawable<Cell> for DeltaGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
         cr.save();
 
