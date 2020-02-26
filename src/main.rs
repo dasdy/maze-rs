@@ -25,7 +25,9 @@ use std::sync::Arc;
 fn make_tha_maze<C: grid::AbstractCell, T: grid::AbstractGrid<C>>(g: &mut T) {
     let mut rng = rand::thread_rng();
     // generate::recursive_backtracker(g, &mut rng);
-    generate::aldous_broder(g, &mut rng);
+    // generate::aldous_broder(g, &mut rng);
+    // generate::simplified_prim(g, &mut rng);
+    generate::true_prim(g, &mut rng);
     // generate::braid(g, &mut rng, 25);
 }
 

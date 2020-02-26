@@ -1,9 +1,9 @@
 use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, CompassGrid, RectangularGrid};
 use rand::prelude::*;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque, BinaryHeap};
 
-fn random_neighbor(neighbors: &[Option<usize>], r: &mut rand::rngs::ThreadRng) -> Option<usize> {
-    let results: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
+fn random_neighbor<T: Copy>(neighbors: &[Option<T>], r: &mut rand::rngs::ThreadRng) -> Option<T> {
+    let results: Vec<T> = neighbors.iter().filter_map(|x| *x).collect();
 
     if results.is_empty() {
         return None;
@@ -12,7 +12,7 @@ fn random_neighbor(neighbors: &[Option<usize>], r: &mut rand::rngs::ThreadRng) -
 }
 
 #[allow(dead_code)]
-pub fn binary_tree<U: AbstractCell>(g: &mut dyn CompassGrid<U>, mut r: &mut rand::rngs::ThreadRng) {
+pub fn binary_tree<C: AbstractCell, T: CompassGrid<C>>(g: &mut T, mut r: &mut rand::rngs::ThreadRng) {
     for i in 0..g.len() {
         if let Some(neighbor) = random_neighbor(&[g.north_ix(i), g.east_ix(i)], &mut r) {
             g.link(i, neighbor)
@@ -49,7 +49,7 @@ pub fn sidewinder<C: AbstractCell, T: RectangularGrid + CompassDirections + Abst
 }
 
 #[allow(dead_code)]
-pub fn aldous_broder<T: AbstractCell>(g: &mut dyn AbstractGrid<T>, r: &mut rand::rngs::ThreadRng) {
+pub fn aldous_broder<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
     let mut visited = HashSet::new();
     let target_size = g.len();
     let mut current_cell = r.gen_range(0, g.len());
@@ -68,7 +68,7 @@ pub fn aldous_broder<T: AbstractCell>(g: &mut dyn AbstractGrid<T>, r: &mut rand:
     }
 }
 
-fn unvisited_neighbors<T: AbstractCell>(g: &dyn AbstractGrid<T>, cell_idx: usize) -> Vec<usize> {
+fn unvisited_neighbors<C: AbstractCell, T: AbstractGrid<C>>(g: &T, cell_idx: usize) -> Vec<usize> {
     g.neighbours(cell_idx)
         .iter()
         .copied()
@@ -85,7 +85,7 @@ fn visited_neighbors<T: AbstractCell>(g: &dyn AbstractGrid<T>, cell_idx: usize) 
 }
 
 #[allow(dead_code)]
-pub fn hunt_and_kill<T: AbstractCell>(g: &mut dyn AbstractGrid<T>, r: &mut rand::rngs::ThreadRng) {
+pub fn hunt_and_kill<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
     let mut current_idx = Some(r.gen_range(0, g.len()));
     while current_idx.is_some() {
         let cell_neighbors = unvisited_neighbors(g, current_idx.unwrap());
@@ -108,6 +108,7 @@ pub fn hunt_and_kill<T: AbstractCell>(g: &mut dyn AbstractGrid<T>, r: &mut rand:
     }
 }
 
+#[allow(dead_code)]
 pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
     g: &mut T,
     r: &mut rand::rngs::ThreadRng,
@@ -129,6 +130,45 @@ pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
     }
 }
 
+#[allow(dead_code)]
+pub fn simplified_prim<C: AbstractCell, T: AbstractGrid<C>>(g:&mut T, r: &mut rand::rngs::ThreadRng) {
+    let mut active = Vec::new();
+    let start_at = g.len() / 2;
+    active.push(start_at);
+    while !active.is_empty() {
+        let current_cell = active[r.gen_range(0, active.len())];
+        let neighbors = unvisited_neighbors(g, current_cell);
+        if neighbors.is_empty() {
+            active = active.iter().filter(|x| **x != current_cell).copied().collect();
+        } else {
+            let n_ix = neighbors[r.gen_range(0, neighbors.len())];
+            g.link(current_cell, n_ix);
+            active.push(n_ix);
+        }
+    }
+}
+
+
+#[allow(dead_code)]
+pub fn true_prim<C: AbstractCell, T: AbstractGrid<C>>(g:&mut T, r: &mut rand::rngs::ThreadRng) {
+    let mut active = BinaryHeap::new();
+    let start_at: usize = 0;
+    active.push((r.next_u64(), start_at));
+    while !active.is_empty() {
+        let (_, current_cell) = active.peek().unwrap();
+        let neighbors = unvisited_neighbors(g, *current_cell);
+        if neighbors.is_empty() {
+            active.pop();
+        } else {
+            let n_ix = neighbors[r.gen_range(0, neighbors.len())];
+            g.link(*current_cell, n_ix);
+            active.push((r.next_u64(), n_ix));
+        }
+    }
+}
+
+
+#[allow(dead_code)]
 pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng, chance: u8) {
     for i in 0..g.len() {
         let c = g.cell(i);
