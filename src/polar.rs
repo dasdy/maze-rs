@@ -208,7 +208,7 @@ impl CircularGrid {
     }
 }
 
-impl GtkDrawable<PolarCell> for CircularGrid {
+impl GtkDrawable for CircularGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, actual_ring_height: f64) {
         let scalex =
             w.get_allocated_width() as f64 / (self.height as f64 * actual_ring_height * 2.);

@@ -225,7 +225,7 @@ impl AbstractGrid<Cell> for RegularGrid {
     }
 }
 
-impl GtkDrawable<Cell> for RegularGrid {
+impl GtkDrawable for RegularGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
         let scalex = w.get_allocated_width() as f64 / (self.width as f64 * cellsize);
         let scaley = w.get_allocated_height() as f64 / (self.height as f64 * cellsize);

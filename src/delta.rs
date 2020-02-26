@@ -139,7 +139,7 @@ fn delta_points(row: usize, col: usize, cellsize: f64) -> DeltaCellPoints {
     }
 }
 
-impl GtkDrawable<Cell> for DeltaGrid {
+impl GtkDrawable for DeltaGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
         cr.save();
 

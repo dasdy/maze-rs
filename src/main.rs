@@ -20,7 +20,7 @@ mod rectangle;
 mod solve;
 use gtk::Application;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 fn make_tha_maze<C: grid::AbstractCell, T: grid::AbstractGrid<C>>(g: &mut T) {
     let mut rng = rand::thread_rng();
@@ -29,6 +29,37 @@ fn make_tha_maze<C: grid::AbstractCell, T: grid::AbstractGrid<C>>(g: &mut T) {
     // generate::simplified_prim(g, &mut rng);
     generate::true_prim(g, &mut rng);
     // generate::braid(g, &mut rng, 25);
+}
+
+fn add_maze_option<
+    C: grid::AbstractCell,
+    T: 'static + grid::AbstractGrid<C> + Clone + draw_utils::GtkDrawable,
+>(
+    g: T,
+    img: gtk::DrawingArea,
+    signal_handler: Arc<AtomicUsize>,
+    container: &gtk::Box,
+    switch_val: usize
+) {
+    let mut rect_grid = g.clone();
+    let img_clone = img.clone();
+    make_tha_maze(&mut rect_grid);
+    let step_state = solve::solve_with_longest_path(&rect_grid);
+    let rect_guard = Arc::new(Mutex::new((rect_grid, step_state)));
+    draw_utils::draw_grid_mutex(&img, signal_handler.clone(), rect_guard.clone(), switch_val);
+    let button = Button::new_with_label("draw rectangle maze");
+    button.connect_clicked(move |_| {
+        let mut rect_grid = g.clone();
+        make_tha_maze(&mut rect_grid);
+        let step_state = solve::solve_with_longest_path(&rect_grid);
+        {
+            let mut data = rect_guard.lock().unwrap();
+            *data = (rect_grid, step_state);
+        }
+        signal_handler.store(switch_val, Ordering::Relaxed);
+        img_clone.queue_draw();
+    });
+    container.add(&button);
 }
 
 fn create_gtk_app() {
@@ -43,57 +74,37 @@ fn create_gtk_app() {
         img.set_size_request(400, 400);
         container.add(&img);
 
-        let img_clone = img.clone();
-
         img.set_vexpand(true);
         img.set_hexpand(true);
         let signal_handler: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
-
-        let mut rect_grid = rectangle::RegularGrid::new(70, 70);
-        make_tha_maze(&mut rect_grid);
-        draw_utils::draw_grid(&img, signal_handler.clone(), &rect_grid, 0);
-        let signal_handler_1_clone = signal_handler.clone();
-        let button = Button::new_with_label("draw rectangle maze");
-        button.connect_clicked(move |_| {
-            signal_handler_1_clone.store(0, Ordering::Relaxed);
-            img_clone.queue_draw();
-        });
-        container.add(&button);
-
-        let img_clone_2 = img.clone();
-        let mut polar_grid = polar::CircularGrid::new(40);
-        make_tha_maze(&mut polar_grid);
-        draw_utils::draw_grid(&img_clone_2, signal_handler.clone(), &polar_grid, 1);
-        let button_polar = Button::new_with_label("draw polar maze");
-        let signal_handler_2_clone = signal_handler.clone();
-        button_polar.connect_clicked(move |_| {
-            signal_handler_2_clone.store(1, Ordering::Relaxed);
-            img_clone_2.queue_draw();
-        });
-        container.add(&button_polar);
-
-        let img_clone_3 = img.clone();
-        let button_hex = Button::new_with_label("draw hex maze");
-        let mut hex_grid = hexagonal::HexagonalGrid::new(50, 50);
-        make_tha_maze(&mut hex_grid);
-        draw_utils::draw_grid(&img_clone_3, signal_handler.clone(), &hex_grid, 2);
-        let signal_handler_3_clone = signal_handler.clone();
-        button_hex.connect_clicked(move |_| {
-            signal_handler_3_clone.store(2, Ordering::Relaxed);
-            img_clone_3.queue_draw();
-        });
-        container.add(&button_hex);
-
-        let img_clone_4 = img;
-        let button_delta = Button::new_with_label("draw delta maze");
-        let mut delta_grid = delta::DeltaGrid::new(45, 60);
-        make_tha_maze(&mut delta_grid);
-        draw_utils::draw_grid(&img_clone_4, signal_handler.clone(), &delta_grid, 3);
-        button_delta.connect_clicked(move |_| {
-            signal_handler.store(3, Ordering::Relaxed);
-            img_clone_4.queue_draw();
-        });
-        container.add(&button_delta);
+        add_maze_option(
+            rectangle::RegularGrid::new(70, 70),
+            img.clone(),
+            signal_handler.clone(),
+            &container,
+            0
+        );
+        add_maze_option(
+            polar::CircularGrid::new(40),
+            img.clone(),
+            signal_handler.clone(),
+            &container,
+            1
+        );
+        add_maze_option(
+            hexagonal::HexagonalGrid::new(50, 50),
+            img.clone(),
+            signal_handler.clone(),
+            &container,
+            2
+        );
+        add_maze_option(
+            delta::DeltaGrid::new(45, 60),
+            img,
+            signal_handler,
+            &container,
+            3
+        );
 
         window.add(&container);
         window.show_all();

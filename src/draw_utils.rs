@@ -1,10 +1,9 @@
-use crate::grid::{AbstractCell, AbstractGrid};
 use crate::gtk::WidgetExt;
-use crate::solve::{solve_with_longest_path, DijkstraStep};
+use crate::solve::{DijkstraStep};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-pub trait GtkDrawable<T: AbstractCell>: AbstractGrid<T> {
+pub trait GtkDrawable {
     fn draw_pathfind(
         &self,
         w: &gtk::DrawingArea,
@@ -15,19 +14,20 @@ pub trait GtkDrawable<T: AbstractCell>: AbstractGrid<T> {
     fn draw_maze(&self, w: &gtk::DrawingArea, cr: &cairo::Context, cellsize: f64);
 }
 
-pub fn draw_grid<C: AbstractCell, T: 'static + GtkDrawable<C> + Clone>(
+
+pub fn draw_grid_mutex<T: 'static + GtkDrawable + Clone>(
     img: &gtk::DrawingArea,
     signal_handler: Arc<AtomicUsize>,
-    g: &T,
+    g: Arc<Mutex<(T, DijkstraStep)>>,
     on_value: usize,
 ) {
-    let g_1 = g.clone();
     let cellsize = 10.;
-    let step_state = solve_with_longest_path(g);
     img.connect_draw(move |w, cr| {
         if signal_handler.load(Ordering::Relaxed) == on_value {
-            g_1.draw_pathfind(w, cr, &step_state, cellsize);
-            g_1.draw_maze(w, cr, cellsize);
+            let data = g.lock().unwrap();
+            let (graph, step_state) = &*data;
+            graph.draw_pathfind(w, cr, &step_state, cellsize);
+            graph.draw_maze(w, cr, cellsize);
         }
         gtk::Inhibit(false)
     });
