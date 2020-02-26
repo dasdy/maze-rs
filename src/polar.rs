@@ -106,20 +106,17 @@ impl AbstractGrid<PolarCell> for CircularGrid {
         neighbours.push(cell.clockwise);
         neighbours
     }
-    fn links(&self, ix: usize) -> HashSet<usize> {
-        self.cells[ix].links.iter().cloned().collect()
-    }
+
     fn len(&self) -> usize {
         self.cells.len()
     }
 
-    fn link(&mut self, ix1: usize, ix2: usize) {
-        (self.cells[ix1].links).insert(ix2);
-        (self.cells[ix2].links).insert(ix1);
-    }
-
     fn cell(&self, ix: usize) -> &PolarCell {
         &self.cells[ix]
+    }
+
+    fn cell_mut(&mut self, ix: usize) -> &mut PolarCell {
+        &mut self.cells[ix]
     }
 }
 

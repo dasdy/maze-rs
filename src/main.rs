@@ -43,7 +43,7 @@ fn create_gtk_app() {
         draw_utils::draw_grid(
             &img,
             signal_handler.clone(),
-            &mut rectangle::RectangleGrid::new(70, 70),
+            &mut rectangle::RegularGrid::new(70, 70),
             0,
         );
         let signal_handler_1_clone = signal_handler.clone();

@@ -1,5 +1,5 @@
 use crate::draw_utils::GtkDrawable;
-use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
+use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, RectangularGrid};
 use crate::gtk::WidgetExt;
 use crate::solve::DijkstraStep;
 use cairo::Context;
@@ -52,20 +52,20 @@ impl CompassDirections for DeltaGrid {
         if is_up(row, col) {
             None
         } else {
-            self._ix_opt(row.wrapping_sub(1), col)
+            self.ix_opt(row.wrapping_sub(1), col)
         }
     }
 
     fn east_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        self._ix_opt(row, col.wrapping_add(1))
+        self.ix_opt(row, col.wrapping_add(1))
     }
 
     fn west_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        self._ix_opt(row, col.wrapping_sub(1))
+        self.ix_opt(row, col.wrapping_sub(1))
     }
 
     fn south_ix(&self, ix: usize) -> Option<usize> {
@@ -73,7 +73,7 @@ impl CompassDirections for DeltaGrid {
         let col = self.cells[ix].col;
 
         if is_up(row, col) {
-            self._ix_opt(row.wrapping_add(1), col)
+            self.ix_opt(row.wrapping_add(1), col)
         } else {
             None
         }
@@ -92,20 +92,16 @@ impl AbstractGrid<DeltaCell> for DeltaGrid {
         let neighbors: Vec<usize> = neighbors.iter().filter_map(|x| *x).collect();
         neighbors
     }
-    fn links(&self, ix: usize) -> HashSet<usize> {
-        self.cells[ix].links.iter().cloned().collect()
-    }
     fn len(&self) -> usize {
         self.cells.len()
     }
 
-    fn link(&mut self, ix1: usize, ix2: usize) {
-        (self.cells[ix1].links).insert(ix2);
-        (self.cells[ix2].links).insert(ix1);
-    }
-
     fn cell(&self, ix: usize) -> &DeltaCell {
         &self.cells[ix]
+    }
+
+    fn cell_mut(&mut self, ix: usize) -> &mut DeltaCell {
+        &mut self.cells[ix]
     }
 }
 
@@ -123,16 +119,14 @@ impl DeltaGrid {
             cells: gridarr,
         }
     }
+}
 
-    pub fn _ix(&self, row: usize, col: usize) -> usize {
-        col + row * self.width
+impl RectangularGrid for DeltaGrid {
+    fn width(&self) -> usize {
+        self.width
     }
-
-    pub fn _ix_opt(&self, row: usize, col: usize) -> Option<usize> {
-        if row >= self.height || col >= self.width {
-            return None;
-        }
-        Some(self._ix(row, col))
+    fn height(&self) -> usize {
+        self.height
     }
 }
 

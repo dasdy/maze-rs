@@ -1,5 +1,4 @@
-use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, CompassGrid};
-use crate::rectangle::RectangleGrid;
+use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, CompassGrid, RectangularGrid};
 use rand::prelude::*;
 use std::collections::{HashSet, VecDeque};
 
@@ -22,23 +21,26 @@ pub fn binary_tree<U: AbstractCell>(g: &mut dyn CompassGrid<U>, mut r: &mut rand
 }
 
 #[allow(dead_code)]
-pub fn sidewinder(g: &mut RectangleGrid, r: &mut rand::rngs::ThreadRng) {
-    for i in 0..g.height {
+pub fn sidewinder<C: AbstractCell, T: RectangularGrid + CompassDirections + AbstractGrid<C>>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng,
+) {
+    for i in 0..g.height() {
         let mut current_run = Vec::new();
-        for j in 0..g.width {
+        for j in 0..g.width() {
             current_run.push((i, j));
 
-            let should_close_out = (j == g.width - 1) || (i > 1 && r.gen_bool(0.5));
+            let should_close_out = (j == g.width() - 1) || (i > 1 && r.gen_bool(0.5));
 
             if should_close_out {
                 let (r_i, r_j) = current_run[r.gen_range(0, current_run.len())];
-                let ix2 = g._ix(r_i, r_j);
+                let ix2 = g.ix(r_i, r_j);
                 current_run.clear();
                 if let Some(ix1) = g.north_ix(ix2) {
                     g.link(ix1, ix2)
                 }
             } else {
-                let ix1 = g._ix(i, j);
+                let ix1 = g.ix(i, j);
                 let ix2 = g.east_ix(ix1).unwrap();
                 g.link(ix1, ix2);
             }
@@ -127,10 +129,7 @@ pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
     }
 }
 
-pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(
-    g: &mut T,
-    r: &mut rand::rngs::ThreadRng
-) {
+pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
     for i in 0..g.len() {
         let c = g.cell(i);
         let c_links = c.links();
@@ -138,7 +137,12 @@ pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(
             if r.gen_range(0, 100) > 25 {
                 continue;
             };
-            let ns: Vec<usize> = g.neighbours(i).iter().filter(|ix| {!c_links.contains(ix)}).copied().collect();
+            let ns: Vec<usize> = g
+                .neighbours(i)
+                .iter()
+                .filter(|ix| !c_links.contains(ix))
+                .copied()
+                .collect();
             if !ns.is_empty() {
                 let new_neighbor = ns[r.gen_range(0, ns.len())];
                 g.link(i, new_neighbor);

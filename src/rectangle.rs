@@ -1,5 +1,5 @@
 use crate::draw_utils::GtkDrawable;
-use crate::grid::{AbstractCell, AbstractGrid, CompassDirections};
+use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, RectangularGrid};
 use crate::solve::DijkstraStep;
 use cairo::Context;
 use gtk::prelude::*;
@@ -44,67 +44,60 @@ impl Cell {
 }
 
 #[derive(Clone)]
-pub struct RectangleGrid {
+pub struct RegularGrid {
     pub width: usize,
     pub height: usize,
     pub cells: Vec<Cell>,
 }
 
-impl CompassDirections for RectangleGrid {
+impl RectangularGrid for RegularGrid {
+    fn width(&self) -> usize {
+        self.width
+    }
+    fn height(&self) -> usize {
+        self.height
+    }
+}
+
+impl CompassDirections for RegularGrid {
     fn north_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        self._ix_opt(row.wrapping_sub(1), col)
+        self.ix_opt(row.wrapping_sub(1), col)
     }
 
     fn east_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        self._ix_opt(row, col.wrapping_add(1))
+        self.ix_opt(row, col.wrapping_add(1))
     }
 
     fn west_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        self._ix_opt(row, col.wrapping_sub(1))
+        self.ix_opt(row, col.wrapping_sub(1))
     }
 
     fn south_ix(&self, ix: usize) -> Option<usize> {
         let row = self.cells[ix].row;
         let col = self.cells[ix].col;
-        self._ix_opt(row.wrapping_add(1), col)
+        self.ix_opt(row.wrapping_add(1), col)
     }
 }
 
-impl RectangleGrid {
-    pub fn new(row: usize, col: usize) -> RectangleGrid {
+impl RegularGrid {
+    pub fn new(row: usize, col: usize) -> RegularGrid {
         let mut gridarr = Vec::new();
         for i in 0..row {
             for j in 0..col {
                 gridarr.push(Cell::new(i, j));
             }
         }
-        RectangleGrid {
+        RegularGrid {
             width: col,
             height: row,
             cells: gridarr,
         }
-    }
-
-    pub fn _ix(&self, row: usize, col: usize) -> usize {
-        col + row * self.width
-    }
-
-    pub fn _ix_opt(&self, row: usize, col: usize) -> Option<usize> {
-        if row >= self.height || col >= self.width {
-            return None;
-        }
-        Some(self._ix(row, col))
-    }
-
-    pub fn link(&mut self, ix1: usize, ix2: usize) {
-        (self.cells[ix1].links).insert(ix2);
-        (self.cells[ix2].links).insert(ix1);
     }
 
     #[allow(dead_code)]
@@ -172,7 +165,7 @@ impl RectangleGrid {
     }
 }
 
-impl Display for RectangleGrid {
+impl Display for RegularGrid {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "+")?;
         for _ in 0..self.width {
@@ -184,15 +177,15 @@ impl Display for RectangleGrid {
             let mut bottom = "+".to_owned();
             for j in 0..self.width {
                 let body = "   ";
-                let current_cell = &self.cells[self._ix(i, j)];
+                let current_cell = &self.cells[self.ix(i, j)];
                 let f = |neighbour: Option<usize>, ok: &str, bound: &str| -> String {
                     match neighbour {
                         Some(c) if current_cell.links.contains(&c) => ok.to_string(),
                         _ => bound.to_string(),
                     }
                 };
-                let east_bound = f(self.east_ix(self._ix(i, j)), " ", "|");
-                let south_bound = f(self.south_ix(self._ix(i, j)), "   ", "---");
+                let east_bound = f(self.east_ix(self.ix(i, j)), " ", "|");
+                let south_bound = f(self.south_ix(self.ix(i, j)), "   ", "---");
 
                 top.push_str(body);
                 top.push_str(&east_bound);
@@ -206,7 +199,7 @@ impl Display for RectangleGrid {
     }
 }
 
-impl AbstractGrid<Cell> for RectangleGrid {
+impl AbstractGrid<Cell> for RegularGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
         let neighbors = &vec![
             self.north_ix(ix),
@@ -219,25 +212,20 @@ impl AbstractGrid<Cell> for RectangleGrid {
         neighbors
     }
 
-    fn links(&self, ix: usize) -> HashSet<usize> {
-        self.cells[ix].links.iter().cloned().collect()
-    }
-
     fn len(&self) -> usize {
         self.cells.len()
-    }
-
-    fn link(&mut self, ix1: usize, ix2: usize) {
-        (self.cells[ix1].links).insert(ix2);
-        (self.cells[ix2].links).insert(ix1);
     }
 
     fn cell(&self, ix: usize) -> &Cell {
         &self.cells[ix]
     }
+
+    fn cell_mut(&mut self, ix: usize) -> &mut Cell {
+        &mut self.cells[ix]
+    }
 }
 
-impl GtkDrawable<Cell> for RectangleGrid {
+impl GtkDrawable<Cell> for RegularGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
         let scalex = w.get_allocated_width() as f64 / (self.width as f64 * cellsize);
         let scaley = w.get_allocated_height() as f64 / (self.height as f64 * cellsize);

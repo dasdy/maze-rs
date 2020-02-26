@@ -2,10 +2,16 @@ use std::collections::HashSet;
 
 pub trait AbstractGrid<T: AbstractCell> {
     fn neighbours(&self, ix: usize) -> Vec<usize>;
-    fn links(&self, ix: usize) -> HashSet<usize>;
     fn len(&self) -> usize;
-    fn link(&mut self, ix1: usize, ix2: usize);
+    fn cell_mut(&mut self, ix: usize) -> &mut T;
     fn cell(&self, ix: usize) -> &T;
+    fn link(&mut self, ix1: usize, ix2: usize) {
+        (self.cell_mut(ix1)).link(ix2);
+        (self.cell_mut(ix2)).link(ix1);
+    }
+    fn links(&self, ix: usize) -> HashSet<usize> {
+        self.cell(ix).links().iter().cloned().collect()
+    }
 }
 
 pub trait CompassDirections {
@@ -16,6 +22,22 @@ pub trait CompassDirections {
 }
 
 pub trait CompassGrid<T: AbstractCell>: AbstractGrid<T> + CompassDirections {}
+
+pub trait RectangularGrid {
+    fn height(&self) -> usize;
+    fn width(&self) -> usize;
+
+    fn ix(&self, row: usize, col: usize) -> usize {
+        col + row * self.width()
+    }
+
+    fn ix_opt(&self, row: usize, col: usize) -> Option<usize> {
+        if row >= self.height() || col >= self.width() {
+            return None;
+        }
+        Some(self.ix(row, col))
+    }
+}
 
 pub trait AbstractCell {
     fn row(&self) -> usize;
