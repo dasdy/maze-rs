@@ -39,7 +39,8 @@ fn add_maze_option<
     img: gtk::DrawingArea,
     signal_handler: Arc<AtomicUsize>,
     container: &gtk::Box,
-    switch_val: usize
+    switch_val: usize,
+    button_name: &str,
 ) {
     let mut rect_grid = g.clone();
     let img_clone = img.clone();
@@ -47,7 +48,7 @@ fn add_maze_option<
     let step_state = solve::solve_with_longest_path(&rect_grid);
     let rect_guard = Arc::new(Mutex::new((rect_grid, step_state)));
     draw_utils::draw_grid_mutex(&img, signal_handler.clone(), rect_guard.clone(), switch_val);
-    let button = Button::new_with_label("draw rectangle maze");
+    let button = Button::new_with_label(button_name);
     button.connect_clicked(move |_| {
         let mut rect_grid = g.clone();
         make_tha_maze(&mut rect_grid);
@@ -82,28 +83,32 @@ fn create_gtk_app() {
             img.clone(),
             signal_handler.clone(),
             &container,
-            0
+            0,
+            "draw rectangle maze"
         );
         add_maze_option(
             polar::CircularGrid::new(40),
             img.clone(),
             signal_handler.clone(),
             &container,
-            1
+            1,
+            "draw polar maze"
         );
         add_maze_option(
             hexagonal::HexagonalGrid::new(50, 50),
             img.clone(),
             signal_handler.clone(),
             &container,
-            2
+            2,
+            "draw hex maze"
         );
         add_maze_option(
-            delta::DeltaGrid::new(45, 60),
+            delta::DeltaGrid::new(45, 70),
             img,
             signal_handler,
             &container,
-            3
+            3,
+            "draw delta maze"
         );
 
         window.add(&container);
