@@ -48,7 +48,7 @@ fn add_maze_option<
     let step_state = solve::solve_with_longest_path(&rect_grid);
     let rect_guard = Arc::new(Mutex::new((rect_grid, step_state)));
     draw_utils::draw_grid_mutex(&img, signal_handler.clone(), rect_guard.clone(), switch_val);
-    let button = Button::new_with_label(button_name);
+    let button = Button::with_label(button_name);
     button.connect_clicked(move |_| {
         let mut rect_grid = g.clone();
         make_tha_maze(&mut rect_grid);
