@@ -211,9 +211,9 @@ impl CircularGrid {
 impl GtkDrawable for CircularGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, actual_ring_height: f64) {
         let scalex =
-            w.get_allocated_width() as f64 / (self.height as f64 * actual_ring_height * 2.);
+            w.allocated_width() as f64 / (self.height as f64 * actual_ring_height * 2.);
         let scaley =
-            w.get_allocated_height() as f64 / (self.height as f64 * actual_ring_height * 2.);
+            w.allocated_height() as f64 / (self.height as f64 * actual_ring_height * 2.);
         cr.scale(scalex, scaley);
         cr.set_line_width(1.0);
 
@@ -228,7 +228,7 @@ impl GtkDrawable for CircularGrid {
             0.,
             2. * PI,
         );
-        cr.stroke();
+        cr.stroke().expect("error while drawing stroke");
         for i in 0..self.len() {
             if i == 0 {
                 continue;
@@ -242,7 +242,7 @@ impl GtkDrawable for CircularGrid {
             let theta_ccw = theta * ((cell.col() + 1) as f64);
             if !cell.links().contains(&inward) {
                 cr.arc(center_x, center_y, inner_r, theta_cw, theta_ccw);
-                cr.stroke();
+                cr.stroke().expect("error while drawing stroke");
             }
 
             let east = self.cw_ix(i);
@@ -254,7 +254,7 @@ impl GtkDrawable for CircularGrid {
                 let dy = center_x + outer_r * theta_ccw.sin();
                 cr.move_to(cx, cy);
                 cr.line_to(dx, dy);
-                cr.stroke();
+                cr.stroke().expect("error while drawing stroke");
             }
         }
     }
@@ -265,9 +265,9 @@ impl GtkDrawable for CircularGrid {
         step_state: &DijkstraStep,
         cellsize: f64,
     ) {
-        cr.save();
-        let scalex = w.get_allocated_width() as f64 / (self.height as f64 * 2. * cellsize);
-        let scaley = w.get_allocated_height() as f64 / (self.height as f64 * 2. * cellsize);
+        cr.save().expect("error while saving coords");
+        let scalex = w.allocated_width() as f64 / (self.height as f64 * 2. * cellsize);
+        let scaley = w.allocated_height() as f64 / (self.height as f64 * 2. * cellsize);
         cr.scale(scalex, scaley);
         cr.set_line_width(cellsize + 1.); // 1. to not create gaps between rows
         let center_x = self.height as f64 * cellsize;
@@ -306,7 +306,7 @@ impl GtkDrawable for CircularGrid {
             cr.set_source_rgb(dark, bright, dark);
             let (r, theta1, theta2) = pixcoord(i);
             cr.arc(center_x, center_y, r, theta1, theta2);
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
 
         let connect = |ix1: usize, ix2: usize| {
@@ -336,7 +336,7 @@ impl GtkDrawable for CircularGrid {
                     a_from,
                     a_to,
                 );
-                cr.stroke();
+                cr.stroke().expect("error while drawing stroke");
             } else {
                 let start_r = (0.5 + r1 as f64) * (cellsize as f64);
                 let end_r = (0.5 + r2 as f64) * (cellsize as f64);
@@ -349,7 +349,7 @@ impl GtkDrawable for CircularGrid {
                 let dy = center_x + end_r * a2.sin();
                 cr.move_to(cx, cy);
                 cr.line_to(dx, dy);
-                cr.stroke();
+                cr.stroke().expect("error while drawing stroke");
             }
         };
 
@@ -364,9 +364,9 @@ impl GtkDrawable for CircularGrid {
                 );
                 cur_cell = step_state.cell_weights[cur_cell as usize].parent;
             }
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
 
-        cr.restore();
+        cr.restore().expect("error while restoring coords");
     }
 }

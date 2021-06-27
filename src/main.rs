@@ -64,8 +64,7 @@ fn add_maze_option<
 }
 
 fn create_gtk_app() {
-    let application = Application::new(Some("com.dasdy.mazes"), Default::default())
-        .expect("failed to initialize GTK application");
+    let application = Application::new(Some("com.dasdy.mazes"), Default::default());
 
     application.connect_activate(move |app| {
         let window = ApplicationWindow::new(app);
@@ -114,7 +113,7 @@ fn create_gtk_app() {
         window.add(&container);
         window.show_all();
     });
-    application.run(&[]);
+    application.run();
 }
 
 fn main() {

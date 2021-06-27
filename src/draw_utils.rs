@@ -1,4 +1,4 @@
-use crate::gtk::WidgetExt;
+use crate::gtk::prelude::WidgetExt;
 use crate::solve::{DijkstraStep};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};

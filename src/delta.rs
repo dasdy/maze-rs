@@ -1,6 +1,6 @@
 use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, RectangularGrid};
-use crate::gtk::WidgetExt;
+use crate::gtk::prelude::WidgetExt;
 use crate::rectangle::Cell;
 use crate::solve::DijkstraStep;
 use cairo::Context;
@@ -141,13 +141,13 @@ fn delta_points(row: usize, col: usize, cellsize: f64) -> DeltaCellPoints {
 
 impl GtkDrawable for DeltaGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
-        cr.save();
+        cr.save().expect("error while saving coords");
 
         let canvas_width = (1 + self.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
         let canvas_height = self.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
 
-        let scalex = w.get_allocated_width() as f64 / canvas_width;
-        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        let scalex = w.allocated_width() as f64 / canvas_width;
+        let scaley = w.allocated_height() as f64 / canvas_height;
         cr.scale(scalex, scaley);
 
         for ix in 0..self.len() {
@@ -174,10 +174,10 @@ impl GtkDrawable for DeltaGrid {
             if no_south || not_linked {
                 cr.line_to(coords.westx, coords.basey);
             }
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
 
-        cr.restore();
+        cr.restore().expect("error while restoring coords");
     }
 
     fn draw_pathfind(
@@ -187,12 +187,12 @@ impl GtkDrawable for DeltaGrid {
         step_state: &DijkstraStep,
         cellsize: f64,
     ) {
-        cr.save();
+        cr.save().expect("error while saving coords");
         let canvas_width = (1 + self.width) as f64 * (cellsize) / 2. + cellsize * 0.1;
         let canvas_height = self.height as f64 * cellsize * 3f64.sqrt() / 2. + cellsize * 0.1;
 
-        let scalex = w.get_allocated_width() as f64 / canvas_width;
-        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        let scalex = w.allocated_width() as f64 / canvas_width;
+        let scaley = w.allocated_height() as f64 / canvas_height;
         cr.scale(scalex, scaley);
 
         let mut max_idx = 0;
@@ -227,7 +227,7 @@ impl GtkDrawable for DeltaGrid {
             cr.move_to(coords.westx, coords.basey);
             cr.line_to(coords.midx, coords.apexy);
             cr.line_to(coords.eastx, coords.basey);
-            cr.fill();
+            cr.fill().expect("error while drawing stroke");
         }
 
         if step_state.cell_weights[max_idx].parent >= 0 {
@@ -241,9 +241,9 @@ impl GtkDrawable for DeltaGrid {
                 cr.line_to(coords_2.cx, coords_2.cy);
                 cur_cell = step_state.cell_weights[cur_cell].parent as usize;
             }
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
 
-        cr.restore();
+        cr.restore().expect("error while restoring coords");
     }
 }

@@ -1,6 +1,6 @@
 use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid, RectangularGrid};
-use crate::gtk::WidgetExt;
+use crate::gtk::prelude::WidgetExt;
 use crate::rectangle::Cell;
 use crate::solve::DijkstraStep;
 use cairo::Context;
@@ -170,15 +170,15 @@ fn hex_points(row: usize, col: usize, cellsize: f64) -> HexagonalCoords {
 
 impl GtkDrawable for HexagonalGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
-        cr.save();
+        cr.save().expect("error while saving coords");
         let a = cellsize / 2.;
         let b = cellsize * 3f64.sqrt() / 2.;
 
         let canvas_width = 3. * self.width as f64 * a + a;
         let canvas_height = 2. * self.height as f64 * b + b + 0.1 * cellsize;
 
-        let scalex = w.get_allocated_width() as f64 / canvas_width;
-        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        let scalex = w.allocated_width() as f64 / canvas_width;
+        let scaley = w.allocated_height() as f64 / canvas_height;
         cr.scale(scalex, scaley);
 
         for ix in 0..self.len() {
@@ -198,10 +198,10 @@ impl GtkDrawable for HexagonalGrid {
             draw_line(&self.northeast_ix(ix), (coords.x_ne, coords.y_n));
             draw_line(&self.north_ix(ix), (coords.x_nw, coords.y_n));
             draw_line(&self.northwest_ix(ix), (coords.x_fw, coords.y_m));
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
 
-        cr.restore();
+        cr.restore().expect("error while restoring coords");
     }
 
     fn draw_pathfind(
@@ -211,15 +211,15 @@ impl GtkDrawable for HexagonalGrid {
         step_state: &DijkstraStep,
         cellsize: f64,
     ) {
-        cr.save();
+        cr.save().expect("error while saving coords");
         let a = cellsize / 2.;
         let b = cellsize * 3f64.sqrt() / 2.;
 
         let canvas_width = 3. * self.width as f64 * a + a;
         let canvas_height = 2. * self.height as f64 * b + b + 0.1 * cellsize;
 
-        let scalex = w.get_allocated_width() as f64 / canvas_width;
-        let scaley = w.get_allocated_height() as f64 / canvas_height;
+        let scalex = w.allocated_width() as f64 / canvas_width;
+        let scaley = w.allocated_height() as f64 / canvas_height;
         cr.scale(scalex, scaley);
 
         let mut max_idx = 0;
@@ -258,7 +258,7 @@ impl GtkDrawable for HexagonalGrid {
             cr.line_to(coords.x_ne, coords.y_n);
             cr.line_to(coords.x_nw, coords.y_n);
             cr.line_to(coords.x_fw, coords.y_m);
-            cr.fill();
+            cr.fill().expect("error while drawing stroke");
         }
 
         if step_state.cell_weights[max_idx].parent >= 0 {
@@ -272,9 +272,9 @@ impl GtkDrawable for HexagonalGrid {
                 cr.line_to(coords_2.cx, coords_2.cy);
                 cur_cell = step_state.cell_weights[cur_cell].parent as usize;
             }
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
 
-        cr.restore();
+        cr.restore().expect("error while restoring coords");
     }
 }

@@ -227,8 +227,8 @@ impl AbstractGrid<Cell> for RegularGrid {
 
 impl GtkDrawable for RegularGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, cellsize: f64) {
-        let scalex = w.get_allocated_width() as f64 / (self.width as f64 * cellsize);
-        let scaley = w.get_allocated_height() as f64 / (self.height as f64 * cellsize);
+        let scalex = w.allocated_width() as f64 / (self.width as f64 * cellsize);
+        let scaley = w.allocated_height() as f64 / (self.height as f64 * cellsize);
 
         cr.scale(scalex, scaley);
         cr.set_line_width(1.0);
@@ -248,7 +248,7 @@ impl GtkDrawable for RegularGrid {
             draw_line(&self.south_ix(ix), (x2, y2));
             draw_line(&self.east_ix(ix), (x2, y1));
             draw_line(&self.north_ix(ix), (x1, y1));
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
     }
 
@@ -259,19 +259,19 @@ impl GtkDrawable for RegularGrid {
         step_state: &DijkstraStep,
         cellsize: f64,
     ) {
-        cr.save();
-        let scalex = w.get_allocated_width() as f64 / (self.width as f64 * cellsize);
-        let scaley = w.get_allocated_height() as f64 / (self.height as f64 * cellsize);
+        cr.save().expect("error while saving coords");
+        let scalex = w.allocated_width() as f64 / (self.width as f64 * cellsize);
+        let scaley = w.allocated_height() as f64 / (self.height as f64 * cellsize);
         cr.scale(scalex, scaley);
         cr.set_line_width(1.0);
 
         let pixcoord = |ix: usize| -> f64 { (ix as f64 + 0.5) * cellsize };
 
         let circle = |x: f64, y: f64| {
-            cr.save();
+            cr.save().expect("error while saving coords");
             cr.translate(x, y);
             cr.arc(0., 0., cellsize / 2., 0., 2. * PI);
-            cr.restore();
+            cr.restore().expect("error while restoring coords");
         };
 
         let coords = |ix: i32| {
@@ -285,7 +285,7 @@ impl GtkDrawable for RegularGrid {
             let col = self.cell(i).col() as f64;
             let (x1, y1) = (col * cellsize, row * cellsize);
             cr.rectangle(x1, y1, cellsize, cellsize);
-            cr.fill();
+            cr.fill().expect("error while drawing stroke");
         };
 
         let mut max_idx = 0;
@@ -323,9 +323,9 @@ impl GtkDrawable for RegularGrid {
         cr.set_line_width(1.0);
         cr.set_source_rgb(0., 0., 0.);
         circle(x1, y1);
-        cr.stroke();
+        cr.stroke().expect("error while drawing stroke");
         circle(x2, y2);
-        cr.stroke();
+        cr.stroke().expect("error while drawing stroke");
         if step_state.cell_weights[max_idx].parent >= 0 {
             let mut cur_cell = max_idx as i32;
             cr.set_source_rgb(1., 0., 0.);
@@ -338,8 +338,8 @@ impl GtkDrawable for RegularGrid {
                 cr.line_to(x2, y2);
                 cur_cell = step_state.cell_weights[cur_cell as usize].parent;
             }
-            cr.stroke();
+            cr.stroke().expect("error while drawing stroke");
         }
-        cr.restore();
+        cr.restore().expect("error while restoring coords");
     }
 }
