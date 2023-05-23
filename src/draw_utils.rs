@@ -7,11 +7,11 @@ pub trait GtkDrawable {
     fn draw_pathfind(
         &self,
         w: &gtk::DrawingArea,
-        cr: &cairo::Context,
+        cr: &gtk::cairo::Context,
         step_state: &DijkstraStep,
         cellsize: f64,
     );
-    fn draw_maze(&self, w: &gtk::DrawingArea, cr: &cairo::Context, cellsize: f64);
+    fn draw_maze(&self, w: &gtk::DrawingArea, cr: &gtk::cairo::Context, cellsize: f64);
 }
 
 
