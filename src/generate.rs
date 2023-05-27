@@ -12,9 +12,9 @@ fn random_neighbor<T: Copy>(neighbors: &[Option<T>], r: &mut rand::rngs::ThreadR
 }
 
 #[allow(dead_code)]
-pub fn binary_tree<C: AbstractCell, T: CompassGrid<C>>(g: &mut T, mut r: &mut rand::rngs::ThreadRng) {
+pub fn binary_tree<C: AbstractCell, T: CompassGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
     for i in 0..g.len() {
-        if let Some(neighbor) = random_neighbor(&[g.north_ix(i), g.east_ix(i)], &mut r) {
+        if let Some(neighbor) = random_neighbor(&[g.north_ix(i), g.east_ix(i)], r) {
             g.link(i, neighbor)
         }
     }
@@ -139,7 +139,7 @@ pub fn simplified_prim<C: AbstractCell, T: AbstractGrid<C>>(g:&mut T, r: &mut ra
         let current_cell = active[r.gen_range(0..active.len())];
         let neighbors = unvisited_neighbors(g, current_cell);
         if neighbors.is_empty() {
-            active = active.iter().filter(|x| **x != current_cell).copied().collect();
+            active.retain(|x| *x != current_cell);
         } else {
             let n_ix = neighbors[r.gen_range(0..neighbors.len())];
             g.link(current_cell, n_ix);

@@ -238,8 +238,8 @@ impl GtkDrawable for HexagonalGrid {
         }
 
         let coords = |ix: usize| {
-            let row = self.cell(ix as usize).row();
-            let col = self.cell(ix as usize).col();
+            let row = self.cell(ix).row();
+            let col = self.cell(ix).col();
             hex_points(row, col, cellsize)
         };
 
@@ -267,7 +267,7 @@ impl GtkDrawable for HexagonalGrid {
             cr.set_line_width(4.0);
             let coords_1 = coords(cur_cell);
             cr.move_to(coords_1.cx, coords_1.cy);
-            while cur_cell != (min_idx as usize) {
+            while cur_cell != (min_idx) {
                 let coords_2 = coords(step_state.cell_weights[cur_cell].parent as usize);
                 cr.line_to(coords_2.cx, coords_2.cy);
                 cur_cell = step_state.cell_weights[cur_cell].parent as usize;

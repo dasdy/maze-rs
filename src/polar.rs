@@ -217,9 +217,9 @@ impl GtkDrawable for CircularGrid {
         cr.scale(scalex, scaley);
         cr.set_line_width(1.0);
 
-        let center_x = self.height as f64 * actual_ring_height as f64;
+        let center_x = self.height as f64 * actual_ring_height;
         let center_y = center_x;
-        let ring_height = actual_ring_height as f64;
+        let ring_height = actual_ring_height;
 
         cr.arc(
             center_x,
@@ -294,7 +294,7 @@ impl GtkDrawable for CircularGrid {
             let col = self.cell(ix).col() as f64;
             let total_cols = self.cell(ix).columns as f64;
             let theta = 2. * PI / total_cols;
-            let inner_r = (cellsize as f64) * (row + 0.5);
+            let inner_r = cellsize * (row + 0.5);
 
             (inner_r, theta * col, theta * (col + 1.01)) // 1.01 to not create gaps between clockwise neighbours
         };
@@ -332,14 +332,14 @@ impl GtkDrawable for CircularGrid {
                 cr.arc(
                     center_x,
                     center_y,
-                    (r1 as f64 + 0.5) * (cellsize as f64),
+                    (r1 as f64 + 0.5) * cellsize,
                     a_from,
                     a_to,
                 );
                 cr.stroke().expect("error while drawing stroke");
             } else {
-                let start_r = (0.5 + r1 as f64) * (cellsize as f64);
-                let end_r = (0.5 + r2 as f64) * (cellsize as f64);
+                let start_r = (0.5 + r1 as f64) * cellsize;
+                let end_r = (0.5 + r2 as f64) * cellsize;
                 let theta2 = 2. * PI / (self.cell(ix2).columns as f64);
                 let a = theta * (0.5 + self.cell(ix1).col as f64);
                 let a2 = theta2 * (0.5 + self.cell(ix2).col as f64);

@@ -26,7 +26,7 @@ pub fn draw_grid_mutex<T: 'static + GtkDrawable + Clone>(
         if signal_handler.load(Ordering::Relaxed) == on_value {
             let data = g.lock().unwrap();
             let (graph, step_state) = &*data;
-            graph.draw_pathfind(w, cr, &step_state, cellsize);
+            graph.draw_pathfind(w, cr, step_state, cellsize);
             graph.draw_maze(w, cr, cellsize);
         }
         gtk::Inhibit(false)

@@ -116,7 +116,7 @@ impl RegularGrid {
 
             let mut draw_line = |item: &Option<usize>, start: (f32, f32), end: (f32, f32)| {
                 if let Some(r_idx) = item {
-                    if cur_cell.links.contains(&r_idx) {
+                    if cur_cell.links.contains(r_idx) {
                         imageproc::drawing::draw_line_segment_mut(
                             &mut imgbuf,
                             start,
@@ -190,7 +190,7 @@ impl Display for RegularGrid {
                 top.push_str(body);
                 top.push_str(&east_bound);
                 bottom.push_str(&south_bound);
-                bottom.push_str("+");
+                bottom.push('+');
             }
             writeln!(f, "{}", top)?;
             writeln!(f, "{}", bottom)?;
