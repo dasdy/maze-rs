@@ -1,5 +1,5 @@
 use crate::gtk::prelude::WidgetExt;
-use crate::solve::{DijkstraStep};
+use crate::solve::DijkstraStep;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -29,6 +29,6 @@ pub fn draw_grid_mutex<T: 'static + GtkDrawable + Clone>(
             graph.draw_pathfind(w, cr, step_state, cellsize);
             graph.draw_maze(w, cr, cellsize);
         }
-        gtk::Inhibit(false)
+        cairo::glib::Propagation::Proceed
     });
 }

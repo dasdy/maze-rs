@@ -5,6 +5,7 @@ extern crate num_complex;
 extern crate gdk_pixbuf;
 extern crate gio;
 extern crate gtk;
+extern crate cairo;
 
 use gio::prelude::*;
 use gtk::prelude::*;
