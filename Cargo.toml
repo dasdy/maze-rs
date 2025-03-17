@@ -2,7 +2,7 @@
 name = "rust-mazes"
 version = "0.1.0"
 authors = ["Oleksandr Podze <dasdeg@gmail.com>"]
-edition = "2018"
+edition = "2024"
 
 [profile.dev]
 opt-level = 0
