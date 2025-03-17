@@ -50,7 +50,7 @@ pub fn make_tha_maze<C: AbstractCell, T: AbstractGrid<C>>(
     grid: &mut T,
     braid_chance: u8,
 ) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     match generation_type {
         GenerationType::RecursiveBacktracker => generate::recursive_backtracker(grid, &mut rng),
         GenerationType::AldousBroder => generate::aldous_broder(grid, &mut rng),

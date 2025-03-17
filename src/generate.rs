@@ -8,7 +8,7 @@ fn random_neighbor<T: Copy>(neighbors: &[Option<T>], r: &mut rand::rngs::ThreadR
     if results.is_empty() {
         return None;
     }
-    Some(results[r.gen_range(0..results.len())])
+    Some(results[r.random_range(0..results.len())])
 }
 
 #[allow(dead_code)]
@@ -36,10 +36,10 @@ pub fn sidewinder<
         for j in 0..g.width() {
             current_run.push((i, j));
 
-            let should_close_out = (j == g.width() - 1) || (i > 1 && r.gen_bool(0.5));
+            let should_close_out = (j == g.width() - 1) || (i > 1 && r.random_bool(0.5));
 
             if should_close_out {
-                let (r_i, r_j) = current_run[r.gen_range(0..current_run.len())];
+                let (r_i, r_j) = current_run[r.random_range(0..current_run.len())];
                 let ix2 = g.ix(r_i, r_j);
                 current_run.clear();
                 if let Some(ix1) = g.north_ix(ix2) {
@@ -61,13 +61,13 @@ pub fn aldous_broder<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
 ) {
     let mut visited = HashSet::new();
     let target_size = g.len();
-    let mut current_cell = r.gen_range(0..g.len());
+    let mut current_cell = r.random_range(0..g.len());
     visited.insert(current_cell);
 
     while visited.len() < target_size {
         // At least one neighbor is guaranteed to exist, unwrap is safe
         let neighbours = g.neighbours(current_cell);
-        let random_neighbor = neighbours[r.gen_range(0..neighbours.len())];
+        let random_neighbor = neighbours[r.random_range(0..neighbours.len())];
 
         if !visited.contains(&random_neighbor) {
             g.link(random_neighbor, current_cell);
@@ -104,12 +104,12 @@ pub fn hunt_and_kill<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
     g: &mut T,
     r: &mut rand::rngs::ThreadRng,
 ) {
-    let mut current_idx = Some(r.gen_range(0..g.len()));
+    let mut current_idx = Some(r.random_range(0..g.len()));
     while current_idx.is_some() {
         let cell_neighbors = unvisited_neighbors(g, current_idx.unwrap());
 
         if cell_neighbors.is_empty() {
-            let next_cell = cell_neighbors[r.gen_range(0..cell_neighbors.len())];
+            let next_cell = cell_neighbors[r.random_range(0..cell_neighbors.len())];
             g.link(current_idx.unwrap(), next_cell);
             current_idx = Some(next_cell);
         } else {
@@ -118,7 +118,7 @@ pub fn hunt_and_kill<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
                 let i_neighbors = visited_neighbors(g, i);
                 if g.links(i).is_empty() && i_neighbors.is_empty() {
                     current_idx = Some(i);
-                    g.link(i, i_neighbors[r.gen_range(0..i_neighbors.len())]);
+                    g.link(i, i_neighbors[r.random_range(0..i_neighbors.len())]);
                     break;
                 }
             }
@@ -131,7 +131,7 @@ pub fn recursive_backtracker<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Siz
     g: &mut T,
     r: &mut rand::rngs::ThreadRng,
 ) {
-    let current_idx = r.gen_range(0..g.len());
+    let current_idx = r.random_range(0..g.len());
     let mut cell_stack = VecDeque::new();
     cell_stack.push_back(current_idx);
 
@@ -141,7 +141,7 @@ pub fn recursive_backtracker<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Siz
         if neighbors.is_empty() {
             cell_stack.pop_back();
         } else {
-            let n_ix = neighbors[r.gen_range(0..neighbors.len())];
+            let n_ix = neighbors[r.random_range(0..neighbors.len())];
             g.link(current_idx, n_ix);
             cell_stack.push_back(n_ix);
         }
@@ -157,12 +157,12 @@ pub fn simplified_prim<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
     let start_at = g.len() / 2;
     active.push(start_at);
     while !active.is_empty() {
-        let current_cell = active[r.gen_range(0..active.len())];
+        let current_cell = active[r.random_range(0..active.len())];
         let neighbors = unvisited_neighbors(g, current_cell);
         if neighbors.is_empty() {
             active.retain(|x| *x != current_cell);
         } else {
-            let n_ix = neighbors[r.gen_range(0..neighbors.len())];
+            let n_ix = neighbors[r.random_range(0..neighbors.len())];
             g.link(current_cell, n_ix);
             active.push(n_ix);
         }
@@ -184,7 +184,7 @@ pub fn true_prim<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
         if neighbors.is_empty() {
             active.pop();
         } else {
-            let n_ix = neighbors[r.gen_range(0..neighbors.len())];
+            let n_ix = neighbors[r.random_range(0..neighbors.len())];
             g.link(*current_cell, n_ix);
             active.push((r.next_u64(), n_ix));
         }
@@ -202,7 +202,7 @@ pub fn braid<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
         let c = g.cell(i);
         let c_links = c.links();
         if c_links.len() == 1 {
-            if r.gen_range(0..255) > chance {
+            if r.random_range(0..255) > chance {
                 continue;
             };
             let ns: Vec<usize> = g
@@ -212,7 +212,7 @@ pub fn braid<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
                 .copied()
                 .collect();
             if !ns.is_empty() {
-                let new_neighbor = ns[r.gen_range(0..ns.len())];
+                let new_neighbor = ns[r.random_range(0..ns.len())];
                 g.link(i, new_neighbor);
             }
         }
