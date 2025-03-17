@@ -1,7 +1,7 @@
 use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, RectangularGrid};
 use crate::solve::DijkstraStep;
-use cairo::Context;
+use gtk::cairo::Context;
 use gtk::prelude::*;
 use gtk::DrawingArea;
 use std::collections::HashSet;

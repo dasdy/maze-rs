@@ -1,3 +1,5 @@
+use gtk::glib::Propagation;
+
 use crate::grid::{AbstractCell, AbstractGrid};
 use crate::gtk::prelude::WidgetExt;
 use crate::solve::DijkstraStep;
@@ -143,6 +145,6 @@ pub fn draw_grid_mutex(
                 )
             }
         }
-        cairo::glib::Propagation::Proceed
+        Propagation::Proceed
     });
 }

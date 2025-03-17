@@ -5,7 +5,7 @@ use crate::grid::{AbstractCell, AbstractGrid, RectangularGrid};
 use crate::gtk::prelude::WidgetExt;
 use crate::rectangle::Cell;
 use crate::solve::DijkstraStep;
-use cairo::Context;
+use gtk::cairo::Context;
 use gtk::DrawingArea;
 
 #[derive(Clone)]

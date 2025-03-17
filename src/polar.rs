@@ -4,7 +4,7 @@ use std::fmt::{Display, Error, Formatter};
 
 use crate::draw_utils::GtkDrawable;
 use crate::solve::DijkstraStep;
-use cairo::Context;
+use gtk::cairo::Context;
 use gtk::prelude::*;
 use gtk::DrawingArea;
 use std::f64::consts::PI;

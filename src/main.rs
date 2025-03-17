@@ -1,3 +1,9 @@
+use draw_utils::{GenerationType, MazeType, Settings};
+use gtk::{prelude::*, Entry, RadioButton};
+use gtk::{ApplicationWindow, Button};
+use crate::gtk::prelude::ApplicationExt;
+use crate::gtk::prelude::ApplicationExtManual;
+
 extern crate image;
 extern crate imageproc;
 extern crate num_complex;
@@ -7,10 +13,6 @@ extern crate gdk_pixbuf;
 extern crate gio;
 extern crate gtk;
 
-use draw_utils::{GenerationType, MazeType, Settings};
-use gio::prelude::*;
-use gtk::{prelude::*, Entry, RadioButton};
-use gtk::{ApplicationWindow, Button};
 
 mod delta;
 mod draw_utils;
@@ -24,6 +26,7 @@ use gtk::Application;
 use solve::DijkstraStep;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
+
 
 fn add_maze_option(
     img: gtk::DrawingArea,
