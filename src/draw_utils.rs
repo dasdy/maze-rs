@@ -16,10 +16,7 @@ pub trait GtkDrawable {
     fn draw_maze(&self, w: &gtk::DrawingArea, cr: &gtk::cairo::Context, cellsize: f64);
 }
 
-pub trait DrawableGrid<C: AbstractCell>: GtkDrawable + AbstractGrid<C> {}
-impl<T, C: AbstractCell> DrawableGrid<C> for T where T: GtkDrawable + AbstractGrid<C> {}
-
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum MazeType {
     Regular,
     Circular,
@@ -27,7 +24,7 @@ pub enum MazeType {
     Delta,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum GenerationType {
     RecursiveBacktracker,
     AldousBroder,
@@ -129,12 +126,21 @@ pub fn draw_grid_mutex(
             // && !data.drawn
             {
                 let settings = &*data;
-                println!("- draw pathfind - ");
+                // println!("- draw pathfind - ");
                 settings.grid.draw_pathfind(w, cr, &settings.step, cellsize);
-                println!("- draw maze - ");
+                // println!("- draw maze - ");
                 settings.grid.draw_maze(w, cr, cellsize);
-                println!("- draw: moving on - ");
+                // println!("- draw: moving on - ");
                 data.drawn = true
+            } else {
+                println!(
+                    "No redraw yay: {:?}, {:?}, {:}, {:}, {:}",
+                    data.maze_type,
+                    data.generation_type,
+                    data.braid_chance,
+                    data.version,
+                    data.drawn
+                )
             }
         }
         cairo::glib::Propagation::Proceed
