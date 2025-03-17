@@ -201,7 +201,7 @@ impl Display for RegularGrid {
 
 impl AbstractGrid<Cell> for RegularGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
-        let neighbors = &vec![
+        let neighbors = [
             self.north_ix(ix),
             self.east_ix(ix),
             self.west_ix(ix),
@@ -333,7 +333,9 @@ impl GtkDrawable for RegularGrid {
             let (x1, y1) = coords(cur_cell);
             cr.move_to(x1, y1);
 
-            while cur_cell != (min_idx as i32) {
+            let mut seen = HashSet::new();
+            while cur_cell != (min_idx as i32) && !seen.contains(&cur_cell) {
+                seen.insert(cur_cell);
                 let (x2, y2) = coords(step_state.cell_weights[cur_cell as usize].parent);
                 cr.line_to(x2, y2);
                 cur_cell = step_state.cell_weights[cur_cell as usize].parent;

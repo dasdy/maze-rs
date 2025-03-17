@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::draw_utils::GtkDrawable;
 use crate::grid::{AbstractCell, AbstractGrid, RectangularGrid};
 use crate::gtk::prelude::WidgetExt;
@@ -15,7 +17,7 @@ pub struct HexagonalGrid {
 
 impl AbstractGrid<Cell> for HexagonalGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
-        let neighbors = &vec![
+        let neighbors = [
             self.north_ix(ix),
             self.south_ix(ix),
             self.northeast_ix(ix),
@@ -267,7 +269,9 @@ impl GtkDrawable for HexagonalGrid {
             cr.set_line_width(4.0);
             let coords_1 = coords(cur_cell);
             cr.move_to(coords_1.cx, coords_1.cy);
-            while cur_cell != (min_idx) {
+            let mut seen = HashSet::new();
+            while cur_cell != (min_idx) && !seen.contains(&cur_cell) {
+                seen.insert(cur_cell);
                 let coords_2 = coords(step_state.cell_weights[cur_cell].parent as usize);
                 cr.line_to(coords_2.cx, coords_2.cy);
                 cur_cell = step_state.cell_weights[cur_cell].parent as usize;

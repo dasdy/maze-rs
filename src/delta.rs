@@ -50,7 +50,7 @@ impl CompassDirections for DeltaGrid {
 
 impl AbstractGrid<Cell> for DeltaGrid {
     fn neighbours(&self, ix: usize) -> Vec<usize> {
-        let neighbors = &vec![
+        let neighbors = [
             self.north_ix(ix),
             self.south_ix(ix),
             self.east_ix(ix),

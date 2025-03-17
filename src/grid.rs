@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-pub trait AbstractGrid<T: AbstractCell> {
+pub trait AbstractGrid<T: AbstractCell + ?Sized> {
     fn neighbours(&self, ix: usize) -> Vec<usize>;
     fn len(&self) -> usize;
     fn cell_mut(&mut self, ix: usize) -> &mut T;
@@ -21,7 +21,7 @@ pub trait CompassDirections {
     fn west_ix(&self, ix: usize) -> Option<usize>;
 }
 
-pub trait CompassGrid<T: AbstractCell>: AbstractGrid<T> + CompassDirections {}
+pub trait CompassGrid<T: AbstractCell + ?Sized>: AbstractGrid<T> + CompassDirections {}
 
 pub trait RectangularGrid {
     fn height(&self) -> usize;

@@ -1,6 +1,6 @@
 use crate::grid::{AbstractCell, AbstractGrid, CompassDirections, CompassGrid, RectangularGrid};
 use rand::prelude::*;
-use std::collections::{HashSet, VecDeque, BinaryHeap};
+use std::collections::{BinaryHeap, HashSet, VecDeque};
 
 fn random_neighbor<T: Copy>(neighbors: &[Option<T>], r: &mut rand::rngs::ThreadRng) -> Option<T> {
     let results: Vec<T> = neighbors.iter().filter_map(|x| *x).collect();
@@ -12,7 +12,10 @@ fn random_neighbor<T: Copy>(neighbors: &[Option<T>], r: &mut rand::rngs::ThreadR
 }
 
 #[allow(dead_code)]
-pub fn binary_tree<C: AbstractCell, T: CompassGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
+pub fn binary_tree<C: AbstractCell + ?Sized, T: CompassGrid<C> + ?Sized>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng,
+) {
     for i in 0..g.len() {
         if let Some(neighbor) = random_neighbor(&[g.north_ix(i), g.east_ix(i)], r) {
             g.link(i, neighbor)
@@ -21,7 +24,10 @@ pub fn binary_tree<C: AbstractCell, T: CompassGrid<C>>(g: &mut T, r: &mut rand::
 }
 
 #[allow(dead_code)]
-pub fn sidewinder<C: AbstractCell, T: RectangularGrid + CompassDirections + AbstractGrid<C>>(
+pub fn sidewinder<
+    C: AbstractCell + ?Sized,
+    T: RectangularGrid + CompassDirections + AbstractGrid<C> + ?Sized,
+>(
     g: &mut T,
     r: &mut rand::rngs::ThreadRng,
 ) {
@@ -49,7 +55,10 @@ pub fn sidewinder<C: AbstractCell, T: RectangularGrid + CompassDirections + Abst
 }
 
 #[allow(dead_code)]
-pub fn aldous_broder<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
+pub fn aldous_broder<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng,
+) {
     let mut visited = HashSet::new();
     let target_size = g.len();
     let mut current_cell = r.gen_range(0..g.len());
@@ -68,7 +77,10 @@ pub fn aldous_broder<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut ran
     }
 }
 
-fn unvisited_neighbors<C: AbstractCell, T: AbstractGrid<C>>(g: &T, cell_idx: usize) -> Vec<usize> {
+fn unvisited_neighbors<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
+    g: &T,
+    cell_idx: usize,
+) -> Vec<usize> {
     g.neighbours(cell_idx)
         .iter()
         .copied()
@@ -76,7 +88,10 @@ fn unvisited_neighbors<C: AbstractCell, T: AbstractGrid<C>>(g: &T, cell_idx: usi
         .collect()
 }
 
-fn visited_neighbors<T: AbstractCell>(g: &dyn AbstractGrid<T>, cell_idx: usize) -> Vec<usize> {
+fn visited_neighbors<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
+    g: &T,
+    cell_idx: usize,
+) -> Vec<usize> {
     g.neighbours(cell_idx)
         .iter()
         .copied()
@@ -85,7 +100,10 @@ fn visited_neighbors<T: AbstractCell>(g: &dyn AbstractGrid<T>, cell_idx: usize) 
 }
 
 #[allow(dead_code)]
-pub fn hunt_and_kill<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng) {
+pub fn hunt_and_kill<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng,
+) {
     let mut current_idx = Some(r.gen_range(0..g.len()));
     while current_idx.is_some() {
         let cell_neighbors = unvisited_neighbors(g, current_idx.unwrap());
@@ -109,7 +127,7 @@ pub fn hunt_and_kill<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut ran
 }
 
 #[allow(dead_code)]
-pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
+pub fn recursive_backtracker<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
     g: &mut T,
     r: &mut rand::rngs::ThreadRng,
 ) {
@@ -131,7 +149,10 @@ pub fn recursive_backtracker<C: AbstractCell, T: AbstractGrid<C>>(
 }
 
 #[allow(dead_code)]
-pub fn simplified_prim<C: AbstractCell, T: AbstractGrid<C>>(g:&mut T, r: &mut rand::rngs::ThreadRng) {
+pub fn simplified_prim<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng,
+) {
     let mut active = Vec::new();
     let start_at = g.len() / 2;
     active.push(start_at);
@@ -148,9 +169,12 @@ pub fn simplified_prim<C: AbstractCell, T: AbstractGrid<C>>(g:&mut T, r: &mut ra
     }
 }
 
-
 #[allow(dead_code)]
-pub fn true_prim<C: AbstractCell, T: AbstractGrid<C>>(g:&mut T, r: &mut rand::rngs::ThreadRng) {
+pub fn true_prim<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng,
+) {
+    println!(" - prim - ");
     let mut active = BinaryHeap::new();
     let start_at: usize = 0;
     active.push((r.next_u64(), start_at));
@@ -165,11 +189,15 @@ pub fn true_prim<C: AbstractCell, T: AbstractGrid<C>>(g:&mut T, r: &mut rand::rn
             active.push((r.next_u64(), n_ix));
         }
     }
+    println!(" - end prim - ");
 }
 
-
 #[allow(dead_code)]
-pub fn braid<C: AbstractCell, T: AbstractGrid<C>>(g: &mut T, r: &mut rand::rngs::ThreadRng, chance: u8) {
+pub fn braid<C: AbstractCell + ?Sized, T: AbstractGrid<C> + ?Sized>(
+    g: &mut T,
+    r: &mut rand::rngs::ThreadRng,
+    chance: u8,
+) {
     for i in 0..g.len() {
         let c = g.cell(i);
         let c_links = c.links();

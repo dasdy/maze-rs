@@ -210,10 +210,8 @@ impl CircularGrid {
 
 impl GtkDrawable for CircularGrid {
     fn draw_maze(&self, w: &DrawingArea, cr: &Context, actual_ring_height: f64) {
-        let scalex =
-            w.allocated_width() as f64 / (self.height as f64 * actual_ring_height * 2.);
-        let scaley =
-            w.allocated_height() as f64 / (self.height as f64 * actual_ring_height * 2.);
+        let scalex = w.allocated_width() as f64 / (self.height as f64 * actual_ring_height * 2.);
+        let scaley = w.allocated_height() as f64 / (self.height as f64 * actual_ring_height * 2.);
         cr.scale(scalex, scaley);
         cr.set_line_width(1.0);
 
@@ -357,7 +355,9 @@ impl GtkDrawable for CircularGrid {
             let mut cur_cell = max_idx as i32;
             cr.set_source_rgb(1., 0., 0.);
             cr.set_line_width(4.0);
-            while cur_cell != (min_idx as i32) {
+            let mut seen = HashSet::new();
+            while cur_cell != (min_idx as i32) && !seen.contains(&cur_cell) {
+                seen.insert(cur_cell);
                 connect(
                     cur_cell as usize,
                     step_state.cell_weights[cur_cell as usize].parent as usize,
